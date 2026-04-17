@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { useTensorflowModel } from 'react-native-fast-tflite';
-import { useFrameProcessor, Frame } from 'react-native-vision-camera';
+import { useFrameOutput, Frame } from 'react-native-vision-camera';
 import { Worklets } from 'react-native-worklets-core';
+
+/**
+ * EYECARE PRO - VISION CAMERA V5 ARCHITECTURE
+ * -------------------------------------------
+ * IMPORTANT: useFrameProcessor was removed in Vision Camera v5.
+ * We MUST use useFrameOutput and call frame.dispose() to prevent pipeline stalls.
+ */
 
 // Average human interpupillary distance (IPD) is 63mm
 const AVG_IPD_MM = 63;
@@ -20,29 +27,37 @@ export function useFaceDistance() {
     setIsDistanceCorrect(Math.abs(d - TARGET_DISTANCE_CM) <= TOLERANCE_CM);
   });
 
-  const frameProcessor = useFrameProcessor((frame: Frame) => {
-    'worklet';
-    if (model.state !== 'loaded') return;
+  const frameOutput = useFrameOutput({
+    onFrame(frame: Frame) {
+      'worklet';
+      if (model.state !== 'loaded') return;
 
-    try {
-      // Logic for iris processing using the model
-      const leftIrisX = 100; // placeholder
-      const rightIrisX = 200; // placeholder
-      const pixelDistance = Math.abs(rightIrisX - leftIrisX);
-      
-      const focalLength = 500; 
-      const estimatedDistanceCm = (focalLength * AVG_IPD_MM) / (pixelDistance * 10);
-      
-      onDistanceUpdate(estimatedDistanceCm);
-    } catch (e) {
-      console.error("Frame processing error:", e);
+      try {
+        // Run inference
+        const output = model.model.run([(frame as any).toArrayBuffer()]);
+        
+        // Landmark processing placeholder
+        const leftIrisX = 100; 
+        const rightIrisX = 200; 
+        const pixelDistance = Math.abs(rightIrisX - leftIrisX);
+        
+        const focalLength = 500; 
+        const estimatedDistanceCm = (focalLength * AVG_IPD_MM) / (pixelDistance * 10);
+        
+        onDistanceUpdate(estimatedDistanceCm);
+      } catch (e) {
+        console.error("Distance Frame Error:", e);
+      } finally {
+        // REQUIRED in V5 to avoid memory leaks
+        (frame as any).dispose();
+      }
     }
-  }, [model]);
+  });
 
   return {
     distance,
     isDistanceCorrect,
-    frameProcessor,
+    frameOutput, // Migrated to V5
     modelState: model.state
   };
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, ScrollView, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, ArrowLeft, RotateCcw, CheckCircle2, Type, Hash, Grip, Smartphone, Apple, Home, Hand, Flower2 } from 'lucide-react-native';
+import { Eye, ArrowLeft, CheckCircle2, Type, Hash, Grip, Smartphone, Apple, Home, Hand, Flower2, Zap } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 import { useAuth } from '../../context/AuthContext';
@@ -201,7 +201,6 @@ export default function VisualAcuityTest() {
 
       <View style={styles.cameraPreview}>
         {device && hasPermission && (
-          {/* @ts-ignore - VisionCamera type conflict */}
           <VisionCamera
             style={StyleSheet.absoluteFill}
             device={device}

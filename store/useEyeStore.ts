@@ -58,18 +58,47 @@ export const useEyeStore = create<EyeStore>()(
         const { results } = get();
         if (results.length === 0) return;
 
-        const recent = results.slice(0, 5);
+        // Diagnostic Pipeline Parameters
+        const recent = results.slice(0, 10);
         const avgScore = recent.reduce((sum, r) => sum + r.score, 0) / recent.length;
         
         let insights = [];
-        if (avgScore < 80) insights.push('Recent tests show a slight decline in visual clarity. Recommend a 20-20-20 routine.');
+        const concerns = results.filter(r => r.status === 'concern');
+        const attention = results.filter(r => r.status === 'attention');
+
+        // Rule 1: Visual Fatigue Detection
+        const lateNightTests = results.filter(r => {
+          const hour = new Date(r.date).getHours();
+          return hour > 21 || hour < 6;
+        });
+        if (lateNightTests.length >= 3 && lateNightTests.some(r => r.score < 85)) {
+          insights.push('AI detected signs of digital eye strain during late-night usage. Activate Blue Light filter.');
+        }
+
+        // Rule 2: Asymmetry & Astigmatism
         if (results.some(r => r.type === 'Astigmatism' && r.status === 'concern')) {
-          insights.push('AI detected potential focal asymmetry. Schedule a professional refraction check.');
+          insights.push('Detected significant focal asymmetry. This may indicate uncorrected astigmatism.');
+        }
+
+        // Rule 3: Macular Health Monitoring
+        if (results.some(r => r.type === 'Amsler Grid' && r.status === 'concern')) {
+          insights.push('URGENT: Distortions detected in Amsler Grid. Please consult an ophthalmologist for a macular check.');
+        }
+
+        // Rule 4: Neurological & Pupil Health
+        const lowPupilResponse = results.find(r => r.type === 'Pupil Response' && r.score < 15);
+        if (lowPupilResponse) {
+          insights.push('Pupil response speed is below optimal threshold. Could indicate fatigue or neurological stress.');
+        }
+
+        // Default medical advice
+        if (insights.length === 0) {
+          insights.push('Diagnostic metrics are within normal clinical ranges. Continue daily monitoring.');
         }
 
         set({ 
           wellnessScore: Math.round(avgScore),
-          aiInsights: insights.length > 0 ? insights : ['Your vision metrics are stable. Great job!']
+          aiInsights: insights.slice(0, 3) // Show top 3 most relevant insights
         });
       },
     }),

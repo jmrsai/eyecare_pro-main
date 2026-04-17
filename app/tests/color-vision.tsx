@@ -5,7 +5,7 @@ import { Palette, ArrowLeft, RotateCcw, CheckCircle2, Shield, Info, Layers, Beak
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
-import { saveTestResult } from '../../lib/firebase';
+import { useEyeStore } from '../../store/useEyeStore';
 import { MotiView } from 'moti';
 
 const { width } = Dimensions.get('window');
@@ -49,6 +49,7 @@ const TEST_CONFIG = {
 
 export default function ColorVisionTest() {
   const { user } = useAuth();
+  const { addResult } = useEyeStore();
   const [testType, setTestType] = useState<ColorTestType | null>(null);
   const [currentPlate, setCurrentPlate] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -73,14 +74,14 @@ export default function ColorVisionTest() {
     const config = TEST_CONFIG[testType!];
     const score = Math.round((finalCorrect / config.plates.length) * 100);
     
-    const result = {
-      testType: `Color Vision (${testType})`,
+    await addResult({
+      type: `Color Vision (${testType})`,
       date: new Date().toISOString(),
       score,
-      status: score >= 80 ? 'normal' : score >= 60 ? 'attention' : 'concern'
-    };
-
-    if (user?.uid) await saveTestResult(user.uid, result);
+      status: score >= 80 ? 'normal' : score >= 60 ? 'attention' : 'concern',
+      details: `${finalCorrect}/${config.plates.length} plates correct.`
+    }, user?.uid);
+    
     setTestComplete(true);
   };
 

@@ -55,44 +55,50 @@ export default function DashboardScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* AI Wellness Hub */}
-        <MotiView
-          from={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', delay: 200 }}
+        <TouchableOpacity 
+          activeOpacity={0.9}
+          onPress={() => router.push('/features/AssessmentHub' as any)}
           style={styles.wellnessCard}
         >
-          <LinearGradient colors={['#FFF', '#F8FAFC']} style={styles.wellnessGradient}>
-            <View style={styles.wellnessHeader}>
-              <View style={styles.scoreCircle}>
-                <Activity size={24} color={theme.colors.primary} />
-                <Text style={styles.scoreText}>{wellnessScore}</Text>
+          <MotiView
+            from={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', delay: 200 }}
+          >
+            <LinearGradient colors={['#FFF', '#F8FAFC']} style={styles.wellnessGradient}>
+              <View style={styles.wellnessHeader}>
+                <View style={styles.scoreCircle}>
+                  <Activity size={24} color={theme.colors.primary} />
+                  <Text style={styles.scoreText}>{wellnessScore}</Text>
+                </View>
+                <View style={styles.wellnessInfo}>
+                  <Text style={styles.wellnessTitle}>Vision Wellness Score</Text>
+                  <Text style={styles.wellnessStatus}>{wellnessScore >= 80 ? 'Optimal' : 'Needs Attention'}</Text>
+                </View>
+                <TrendingUp size={20} color={theme.colors.primary} />
               </View>
-              <View style={styles.wellnessInfo}>
-                <Text style={styles.wellnessTitle}>Vision Wellness Score</Text>
-                <Text style={styles.wellnessStatus}>{wellnessScore >= 80 ? 'Optimal' : 'Needs Attention'}</Text>
+              
+              <View style={styles.aiBox}>
+                <Brain size={16} color={theme.colors.secondary} />
+                <Text style={styles.aiInsightText}>{aiInsights[0]}</Text>
               </View>
-            </View>
-            
-            <View style={styles.aiBox}>
-              <Brain size={16} color={theme.colors.secondary} />
-              <Text style={styles.aiInsightText}>{aiInsights[0]}</Text>
-            </View>
 
-            <View style={styles.progressContainer}>
-                <View style={styles.progressHeader}>
-                    <Text style={styles.progressTitle}>Daily Training</Text>
-                    <Text style={styles.progressPercent}>{dailyProgress}%</Text>
-                </View>
-                <View style={styles.progressBar}>
-                    <MotiView 
-                        animate={{ width: `${dailyProgress}%` }}
-                        transition={{ type: 'timing', duration: 1000 }}
-                        style={[styles.progressFill, { backgroundColor: theme.colors.primary }]} 
-                    />
-                </View>
-            </View>
-          </LinearGradient>
-        </MotiView>
+              <View style={styles.progressContainer}>
+                  <View style={styles.progressHeader}>
+                      <Text style={styles.progressTitle}>Daily Training</Text>
+                      <Text style={styles.progressPercent}>{dailyProgress}%</Text>
+                  </View>
+                  <View style={styles.progressBar}>
+                      <MotiView 
+                          animate={{ width: `${dailyProgress}%` }}
+                          transition={{ type: 'timing', duration: 1000 }}
+                          style={[styles.progressFill, { backgroundColor: theme.colors.primary }]} 
+                      />
+                  </View>
+              </View>
+            </LinearGradient>
+          </MotiView>
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Medical Diagnostics</Text>
         

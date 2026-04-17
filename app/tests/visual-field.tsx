@@ -1,16 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Target, ArrowLeft, RotateCcw, CheckCircle2, Shield, Eye, Scan, Zap, Shapes, Circle as CircleIcon, Square, Triangle } from 'lucide-react-native';
+import { Target, ArrowLeft, CheckCircle2, Scan, Circle as CircleIcon, Square, Triangle, Trophy } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { MotiView, AnimatePresence } from 'moti';
-import { Camera as VisionCamera, useCameraDevice } from 'react-native-vision-camera';
+import { Camera as VisionCamera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { DistanceMonitor } from '../../components/camera/DistanceMonitor';
 import { useFaceDistance } from '../../hooks/useFaceDistance';
 import { useEyeStore } from '../../store/useEyeStore';
 import { useAuth } from '../../context/AuthContext';
-import { saveTestResult } from '../../lib/firebase';
-
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,7 +32,6 @@ export default function VisualFieldTest() {
   const { addResult, updateDailyProgress } = useEyeStore();
 
   const [step, setStep] = useState<'instructions' | 'test' | 'results'>('instructions');
-  const [currentEye, setCurrentEye] = useState<'right' | 'left'>('right');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [stimuli, setStimuli] = useState<any[]>([]);
   const [activeStimulus, setActiveStimulus] = useState<any | null>(null);
@@ -42,6 +39,7 @@ export default function VisualFieldTest() {
   const [score, setScore] = useState(0);
 
   const device = useCameraDevice('front');
+  const { hasPermission } = useCameraPermission();
   const { isDistanceCorrect, frameOutput } = useFaceDistance();
 
   const totalPoints = 15;
@@ -52,7 +50,6 @@ export default function VisualFieldTest() {
       const color = STIMULUS_COLORS[Math.floor(Math.random() * STIMULUS_COLORS.length)];
       const shape = STIMULUS_SHAPES[Math.floor(Math.random() * STIMULUS_SHAPES.length)];
 
-      // Random peripheral position
       const side = Math.random() > 0.5 ? 'left' : 'right';
       const vert = Math.random() > 0.5 ? 'top' : 'bottom';
 
@@ -64,7 +61,7 @@ export default function VisualFieldTest() {
           x: side === 'left' ? Math.random() * 100 + 20 : width - Math.random() * 100 - 60,
           y: vert === 'top' ? Math.random() * 100 + 100 : height - Math.random() * 100 - 300,
         },
-        duration: Math.max(200, 600 - (i * 20)) // Get faster as it goes
+        duration: Math.max(200, 600 - (i * 20))
       });
     }
     setStimuli(newStimuli);
@@ -152,7 +149,7 @@ export default function VisualFieldTest() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.resultsCenter}>
-          <CheckCircle2 size={80} color="#10B981" />
+          <Trophy size={80} color="#10B981" />
           <Text style={styles.resultsTitle}>Assessment Saved</Text>
           <Text style={styles.resultsDesc}>Your peripheral sensitivity score: {Math.round((score / totalPoints) * 100)}%</Text>
           <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
@@ -165,11 +162,9 @@ export default function VisualFieldTest() {
 
   return (
     <View style={styles.testContainer}>
-      {/* Hardware Accelerated Fixation Layer */}
       <View style={styles.fixationLayer}>
-        {device && (
+        {device && hasPermission && (
           <View style={styles.camBox}>
-            {/* @ts-ignore - VisionCamera type conflict */}
             <VisionCamera style={StyleSheet.absoluteFill} device={device} isActive={true} outputs={[frameOutput]} />
             <DistanceMonitor />
           </View>
@@ -177,7 +172,6 @@ export default function VisualFieldTest() {
         <View style={styles.centerDot} />
       </View>
 
-      {/* Dynamic Stimulus Layer */}
       <AnimatePresence>
         {activeStimulus && (
           <MotiView
@@ -191,7 +185,6 @@ export default function VisualFieldTest() {
         )}
       </AnimatePresence>
 
-      {/* Clinical MCQ Overaly */}
       {showMCQ && (
         <MotiView from={{ translateY: 200 }} animate={{ translateY: 0 }} style={styles.mcqOverlay}>
           <Text style={styles.mcqPrompt}>Identify the color you saw:</Text>

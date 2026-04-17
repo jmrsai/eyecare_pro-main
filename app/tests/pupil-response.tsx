@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, ArrowLeft, CheckCircle2, Scan } from 'lucide-react-native';
+import { Eye, ArrowLeft, CheckCircle2, Scan, Activity, Zap } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import { Camera as VisionCamera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { usePupilAnalysis } from '../../hooks/usePupilAnalysis';
 import { useFaceDistance } from '../../hooks/useFaceDistance';
 import { DistanceMonitor } from '../../components/camera/DistanceMonitor';
@@ -11,116 +11,126 @@ import { useEyeStore } from '../../store/useEyeStore';
 import { useAuth } from '../../context/AuthContext';
 import { MotiView, AnimatePresence } from 'moti';
 
+/**
+ * EYECARE PRO - PUPIL RESPONSE DIAGNOSTIC
+ * ---------------------------------------
+ * Real-time AI pupillometry using MediaPipe Iris Segmentation.
+ * Compatible with Vision Camera v5 Nitro Architecture.
+ */
+
 export default function PupilResponseTest() {
   const { user } = useAuth();
-  const { addResult, updateDailyProgress } = useEyeStore();
+  const { addResult } = useEyeStore();
   
   const [step, setStep] = useState<'instructions' | 'test' | 'results'>('instructions');
-  const [currentEye, setCurrentEye] = useState<'right' | 'left'>('right');
   const [phase, setPhase] = useState<'baseline' | 'flash' | 'recovery'>('baseline');
+  const [currentEye, setCurrentEye] = useState<'right' | 'left'>('right');
   const [measurements, setMeasurements] = useState<any[]>([]);
+  
   const [baselineSize, setBaselineSize] = useState<number | null>(null);
   const [minSize, setMinSize] = useState<number | null>(null);
 
   const device = useCameraDevice('front');
-  const { pupilSize, frameProcessor } = usePupilAnalysis();
+  const { hasPermission, requestPermission } = useCameraPermission();
+  
+  const { pupilSize, frameOutput } = usePupilAnalysis();
   const { isDistanceCorrect } = useFaceDistance();
 
   useEffect(() => {
+    if (!hasPermission) {
+      requestPermission();
+    }
+  }, [hasPermission]);
+
+  useEffect(() => {
       if (step === 'test' && pupilSize) {
-          if (phase === 'baseline') {
+          if (phase === 'baseline' && !baselineSize) {
               setBaselineSize(pupilSize);
           } else if (phase === 'flash') {
-              if (minSize === null || pupilSize < minSize) {
+              if (!minSize || pupilSize < minSize) {
                   setMinSize(pupilSize);
               }
           }
       }
-  }, [pupilSize, step, phase, minSize]);
+  }, [pupilSize, step, phase, minSize, baselineSize]);
 
   const runTest = async () => {
+    if (!hasPermission) {
+        Alert.alert("Permission Required", "Camera access is needed for AI diagnostics.");
+        return;
+    }
     setStep('test');
     setPhase('baseline');
     
-    // 2 seconds for baseline
-    setTimeout(() => {
-        setPhase('flash');
-        // 1 second flash phase
-        setTimeout(() => {
-            setPhase('recovery');
-            setTimeout(() => {
-                captureResult();
-            }, 1000);
-        }, 1000);
-    }, 2000);
-  };
-
-  const captureResult = () => {
-    const constriction = baselineSize && minSize ? ((baselineSize - minSize) / baselineSize) * 100 : 0;
-    const result = {
-        eye: currentEye,
-        baseline: baselineSize,
-        constricted: minSize,
-        percent: Math.round(constriction)
-    };
+    // Baseline Phase (2s)
+    await new Promise(r => setTimeout(r, 2000));
+    setPhase('flash');
     
-    const newMeasurements = [...measurements, result];
+    // Flash Phase (1.5s)
+    await new Promise(r => setTimeout(r, 1500));
+    setPhase('recovery');
+    
+    // Recovery Phase (2s)
+    await new Promise(r => setTimeout(r, 2000));
+    
+    const constrictionPercent = baselineSize && minSize ? 
+        ((baselineSize - minSize) / baselineSize) * 100 : 0;
+    
+    const newMeasurements = [...measurements, { eye: currentEye, constriction: constrictionPercent }];
     setMeasurements(newMeasurements);
-
+    
     if (currentEye === 'right') {
         setCurrentEye('left');
         setPhase('baseline');
         setBaselineSize(null);
         setMinSize(null);
-        // Prompt for left eye
-        Alert.alert("Right Eye Complete", "Now prepare to test your Left Eye.");
+        Alert.alert("Right Eye Complete", "Now center your Left Eye for assessment.");
     } else {
         finishDiagnostic(newMeasurements);
     }
   };
 
-  const finishDiagnostic = async (allMeasurements: any[]) => {
-    const avgPercent = allMeasurements.reduce((sum, m) => sum + m.percent, 0) / 2;
-    setStep('results');
+  const finishDiagnostic = async (finalData: any[]) => {
+    const avgPercent = finalData.reduce((acc, curr) => acc + curr.constriction, 0) / 2;
     
     await addResult({
       type: 'Pupil Response',
       date: new Date().toISOString(),
-      score: Math.round(avgPercent * 2), // Scale to 100
+      score: Math.round(avgPercent * 2), // Normalized score
       status: avgPercent >= 20 ? 'normal' : avgPercent >= 10 ? 'attention' : 'concern',
       details: `Avg Constriction: ${avgPercent.toFixed(1)}%`
     }, user?.uid);
-    
-    updateDailyProgress(20);
+
+    setStep('results');
   };
 
   if (step === 'instructions') {
     return (
       <SafeAreaView style={styles.container}>
-        <LinearGradient colors={['#0A2E6B', '#1E3A8A']} style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <ArrowLeft color="#FFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pupil Response</Text>
-          <Text style={styles.headerSubtitle}>Autonomic Function Diagnostic</Text>
-        </LinearGradient>
+        <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <ArrowLeft size={24} color="#0F172A" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Pupil Response</Text>
+        </View>
 
         <View style={styles.content}>
             <MotiView from={{ opacity: 0, translateY: 20 }} animate={{ opacity: 1, translateY: 0 }} style={styles.infoCard}>
-                <Eye size={40} color="#0A2E6B" style={{ marginBottom: 15 }} />
-                <Text style={styles.infoTitle}>Neurological Screening</Text>
+                <Activity size={40} color="#1CB6D0" style={{ marginBottom: 15 }} />
+                <Text style={styles.infoTitle}>Neurological Assessment</Text>
                 <Text style={styles.infoDesc}>
-                    This test uses AI to measure how your pupils react to light. This is a key indicator of neurological and ocular health.
+                    This medical-grade assessment uses AI to monitor how your pupils react to controlled light stimuli. 
                 </Text>
                 <View style={styles.stepBox}>
-                    <Text style={styles.stepText}>1. Keep the phone 30cm away.</Text>
-                    <Text style={styles.stepText}>2. A flash will trigger on the screen.</Text>
-                    <Text style={styles.stepText}>3. Do not blink during the flash phase.</Text>
+                    <Text style={styles.stepText}>• Center your eye in the circular guide</Text>
+                    <Text style={styles.stepText}>• Maintain 40cm distance (indicated in green)</Text>
+                    <Text style={styles.stepText}>• Avoid blinking during the flash phase</Text>
                 </View>
             </MotiView>
             
             <TouchableOpacity style={styles.startBtn} onPress={runTest}>
-                <Text style={styles.startBtnText}>Start Diagnostic</Text>
+                <Zap size={20} color="#FFF" style={{ marginRight: 8 }} />
+                <Text style={styles.startBtnText}>Start Assessment</Text>
             </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -131,16 +141,15 @@ export default function PupilResponseTest() {
     <View style={styles.testContainer}>
         <View style={styles.cameraLayer}>
             {device && (
-                <Camera 
+                <VisionCamera 
                     style={StyleSheet.absoluteFill} 
                     device={device} 
                     isActive={true} 
-                    frameProcessor={frameProcessor}
+                    outputs={[frameOutput]} // REQUIRED FOR V5
                 />
             )}
             <DistanceMonitor />
             
-            {/* Flash Overlay */}
             <AnimatePresence>
                 {phase === 'flash' && (
                     <MotiView 
@@ -154,7 +163,7 @@ export default function PupilResponseTest() {
 
             <View style={styles.eyeGuide}>
                 <Scan size={60} color={isDistanceCorrect ? "#10B981" : "#EF4444"} />
-                <Text style={styles.guideText}>Center your {currentEye} eye</Text>
+                <Text style={styles.guideText}>Center {currentEye.toUpperCase()} Eye</Text>
             </View>
         </View>
 
@@ -174,10 +183,10 @@ export default function PupilResponseTest() {
 
         {step === 'results' && (
             <View style={styles.resultsOverlay}>
-                <CheckCircle2 size={60} color="#10B981" />
-                <Text style={styles.resultsTitle}>Diagnostic Complete</Text>
+                <CheckCircle2 size={80} color="#10B981" />
+                <Text style={styles.resultsTitle}>Assessment Complete</Text>
                 <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
-                    <Text style={styles.doneBtnText}>Done</Text>
+                    <Text style={styles.doneBtnText}>Return to Dashboard</Text>
                 </TouchableOpacity>
             </View>
         )}
@@ -187,31 +196,30 @@ export default function PupilResponseTest() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { padding: 30, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
-  backBtn: { marginBottom: 20 },
-  headerTitle: { fontSize: 32, fontWeight: 'bold', color: '#FFF' },
-  headerSubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.7)' },
-  content: { flex: 1, padding: 30, justifyContent: 'center' },
-  infoCard: { backgroundColor: '#FFF', padding: 30, borderRadius: 30, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 },
-  infoTitle: { fontSize: 24, fontWeight: 'bold', color: '#0F172A', marginBottom: 10 },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 60, backgroundColor: '#FFF' },
+  backBtn: { padding: 10, marginRight: 10 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#0F172A' },
+  content: { padding: 20, flex: 1 },
+  infoCard: { backgroundColor: '#FFF', padding: 25, borderRadius: 30, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 15, elevation: 5 },
+  infoTitle: { fontSize: 22, fontWeight: 'bold', color: '#0F172A', marginBottom: 10 },
   infoDesc: { fontSize: 14, color: '#64748B', lineHeight: 22, marginBottom: 20 },
   stepBox: { gap: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 20 },
   stepText: { fontSize: 13, color: '#475569' },
-  startBtn: { marginTop: 40, backgroundColor: '#0A2E6B', padding: 20, borderRadius: 20, alignItems: 'center' },
+  startBtn: { marginTop: 40, backgroundColor: '#0A2E6B', padding: 20, borderRadius: 20, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   startBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
   testContainer: { flex: 1, backgroundColor: '#000' },
   cameraLayer: { flex: 3, justifyContent: 'center', alignItems: 'center' },
-  flashOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: '#FFF' },
+  flashOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: '#FFF', zIndex: 10 },
   eyeGuide: { position: 'absolute', alignItems: 'center' },
-  guideText: { color: '#FFF', fontWeight: 'bold', marginTop: 10, textShadowColor: '#000', textShadowRadius: 4 },
-  statusPanel: { flex: 1, backgroundColor: '#FFF', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 30 },
-  phaseText: { textAlign: 'center', fontSize: 12, fontWeight: 'bold', color: '#1CB6D0', letterSpacing: 2, marginBottom: 20 },
+  guideText: { color: '#FFF', marginTop: 15, fontWeight: 'bold', textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 5 },
+  statusPanel: { flex: 1, backgroundColor: '#FFF', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25 },
+  phaseText: { fontSize: 12, fontWeight: 'bold', color: '#64748B', letterSpacing: 2, marginBottom: 15, textAlign: 'center' },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   statBox: { alignItems: 'center' },
-  statLabel: { fontSize: 12, color: '#64748B', marginBottom: 5 },
+  statLabel: { fontSize: 12, color: '#94A3B8', marginBottom: 5 },
   statValue: { fontSize: 24, fontWeight: 'bold', color: '#0F172A' },
   resultsOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.95)', justifyContent: 'center', alignItems: 'center', padding: 40 },
   resultsTitle: { fontSize: 24, fontWeight: 'bold', marginTop: 20, color: '#0F172A' },
   doneBtn: { marginTop: 40, padding: 20, backgroundColor: '#0A2E6B', borderRadius: 20, width: '100%', alignItems: 'center' },
-  doneBtnText: { color: '#FFF', fontWeight: 'bold' }
+  doneBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
 });
