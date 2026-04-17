@@ -171,7 +171,7 @@ export default function ExercisesScreen() {
         <View style={styles.recommendationCard}>
           <View style={styles.recommendationHeader}>
             <Sun size={20} color="#F59E0B" />
-            <Text style={styles.recommendationTitle}>Today's Recommendation</Text>
+            <Text style={styles.recommendationTitle}>Today&apos;s Recommendation</Text>
           </View>
           <Text style={styles.recommendationText}>
             {completedToday 

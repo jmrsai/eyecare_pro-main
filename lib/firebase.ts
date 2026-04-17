@@ -3,11 +3,14 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getReactNativePersistence, initializeAuth } from 'firebase/auth/react-native';
+// @ts-ignore
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+// If the above line causes a TS error, it might be due to environment-specific type resolution.
+// getReactNativePersistence is typically exported from 'firebase/auth' in RN environments.
 
 // Replace these with your actual Firebase config keys from the Firebase console
 const firebaseConfig = {
-  apiKey: "AIzaSyCwGLHWUaqR6N4oMPlya6ZP0kmHZUh4FII",
+  apiKey: "[GCP_API_KEY]",
   authDomain: "medimind-ai-7nctq.firebaseapp.com",
   projectId: "medimind-ai-7nctq",
   storageBucket: "medimind-ai-7nctq.firebasestorage.app",

@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, StatusBar, ViewStyle, TextStyle, ScrollView, RefreshControl } from 'react-native';
 import { MotiView } from 'moti';
-import { ChevronRight, Eye, ClipboardList, MessageSquare, FileSearch, TrendingUp, Activity, Bell } from 'lucide-react-native';
+import { ChevronRight, Eye, ClipboardList, MessageSquare, FileSearch, TrendingUp, Activity, Bell, Pill } from 'lucide-react-native';
 import appTheme from '../../styles/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import LogoSVG from '../../components/Medical/LogoSVG';
 
 const FEATURES = [
     { id: 'features/ComprehensiveCheckup', title: 'Comprehensive Check-up', description: 'Complete 5 core tests in 5 minutes.', icon: <ClipboardList color="#3B82F6" size={24}/> },
+    { id: 'medications', title: 'Medication Tracker', description: 'Scan prescriptions and set reminders.', icon: <Pill color="#10B981" size={24}/> },
     { id: 'features/AIChatbot', title: 'AI Chatbot', description: 'Ask questions about your eye health.', icon: <MessageSquare color="#8B5CF6" size={24}/> },
-    { id: 'features/AISymptomChecker', title: 'AI Symptom Checker', description: 'Analyze your current symptoms.', icon: <FileSearch color="#F59E0B" size={24}/> },
 ];
 
 export default function Home() {
@@ -44,9 +45,12 @@ export default function Home() {
   const renderHeader = () => (
     <View style={styles.headerContent}>
       <View style={styles.welcomeRow}>
-        <View>
-          <Text style={styles.title}>Hello!</Text>
-          <Text style={styles.subtitle}>Let's check your vision today.</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <LogoSVG size={40} color={COLORS.primary} />
+          <View>
+            <Text style={styles.title}>Hello!</Text>
+            <Text style={styles.subtitle}>Let&apos;s check your vision today.</Text>
+          </View>
         </View>
         <Pressable style={styles.notificationBtn} onPress={() => router.push('/reminders')}>
           <Bell size={24} color={COLORS.text} />

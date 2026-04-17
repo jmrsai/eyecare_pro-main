@@ -4,7 +4,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as tf from '@tensorflow/tfjs';
 import * as posenet from '@tensorflow-models/posenet';
 import { MotiView } from 'moti';
-import { ShieldCheck, Info, X, Zap, RefreshCw, AlertCircle } from 'lucide-react-native';
+import { ShieldCheck, Info, X, Zap, RefreshCw, AlertCircle, Eye } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -22,6 +22,9 @@ export default function AIFormCoach() {
   const [postureScore, setPostureScore] = useState(100);
   const [statusMessage, setStatusMessage] = useState('Initializing AI...');
   const [distanceAlert, setDistanceAlert] = useState(false);
+  const [blinkCount, setBlinkCount] = useState(0);
+  const [blinkRate, setBlinkRate] = useState(15); // Average bpm
+  const [lastBlinkTime, setLastBlinkTime] = useState(Date.now());
   
   const cameraRef = useRef<any>(null);
   const netRef = useRef<posenet.PoseNet | null>(null);
@@ -56,7 +59,7 @@ export default function AIFormCoach() {
       // for direct texture access, but for this MVP 
       // we'll simulate the analysis loop and score updates
       simulateAnalysis();
-    }, 1000);
+    }, 1000) as any;
   };
 
   const simulateAnalysis = () => {
@@ -64,11 +67,28 @@ export default function AIFormCoach() {
     const randomShift = Math.random() * 10 - 5;
     setPostureScore(prev => Math.min(100, Math.max(0, prev + randomShift)));
     
+    // Simulate blink detection
+    const now = Date.now();
+    if (Math.random() > 0.95) { // 5% chance of blink every second
+      setBlinkCount(prev => prev + 1);
+      setLastBlinkTime(now);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    // Calculate blink rate (simulated)
+    const secondsElapsed = (now - lastBlinkTime) / 1000;
+    if (secondsElapsed > 10) {
+      setStatusMessage('Blink more often!');
+      setBlinkRate(prev => Math.max(5, prev - 1));
+    } else {
+      setBlinkRate(prev => Math.min(20, prev + 0.1));
+    }
+    
     if (postureScore < 70) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       setStatusMessage('Adjust your posture');
-    } else {
-      setStatusMessage('Focusing...');
+    } else if (secondsElapsed <= 10) {
+      setStatusMessage('Optimal Focus');
     }
   };
 
@@ -106,6 +126,17 @@ export default function AIFormCoach() {
               <Text style={styles.scoreLabel}>POSTURE</Text>
               <Text style={styles.scoreValue}>{Math.round(postureScore)}%</Text>
             </MotiView>
+
+            <View style={styles.secondaryHud}>
+              <MotiView 
+                animate={{ opacity: blinkRate < 10 ? 1 : 0.7 }}
+                style={[styles.miniHud, { borderColor: blinkRate > 10 ? '#10B981' : '#F59E0B' }]}
+              >
+                <Eye size={16} color="#FFF" />
+                <Text style={styles.miniHudValue}>{Math.round(blinkRate)}</Text>
+                <Text style={styles.miniHudLabel}>BPM</Text>
+              </MotiView>
+            </View>
           </View>
 
           <View style={styles.bottomBar}>
@@ -115,6 +146,13 @@ export default function AIFormCoach() {
                 <Text style={styles.infoTitle}>AI Monitoring Active</Text>
               </View>
               <Text style={styles.infoDesc}>On-device processing ensures your privacy is 100% protected.</Text>
+            </View>
+            
+            <View style={styles.disclaimerBox}>
+              <AlertCircle size={14} color="#FF9500" />
+              <Text style={styles.disclaimerText}>
+                EyeCare Coach is not a medical device. Use for postural guidance only.
+              </Text>
             </View>
             
             <View style={styles.controls}>
@@ -151,6 +189,32 @@ const styles = StyleSheet.create({
   scoreRing: { width: 180, height: 180, borderRadius: 90, borderWidth: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
   scoreLabel: { color: '#FFF', fontSize: 12, fontWeight: '700', marginBottom: 4 },
   scoreValue: { color: '#FFF', fontSize: 48, fontWeight: 'bold' },
+  secondaryHud: {
+    position: 'absolute',
+    right: -60,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  miniHud: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  miniHudValue: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  miniHudLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 8,
+    fontWeight: '700',
+  },
   bottomBar: { marginBottom: 30 },
   infoCard: { backgroundColor: 'rgba(255,255,255,0.1)', padding: 16, borderRadius: 20, marginBottom: 20, backdropFilter: 'blur(10px)' },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
@@ -163,5 +227,22 @@ const styles = StyleSheet.create({
   alertText: { color: '#FFF', fontWeight: '600', marginLeft: 8 },
   permissionText: { color: '#FFF', textAlign: 'center', marginBottom: 20, fontSize: 16 },
   button: { backgroundColor: '#3B82F6', paddingHorizontal: 30, paddingVertical: 15, borderRadius: 12 },
-  buttonText: { color: '#FFF', fontWeight: 'bold' }
+  buttonText: { color: '#FFF', fontWeight: 'bold' },
+  disclaimerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 149, 0, 0.1)',
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 149, 0, 0.2)',
+  },
+  disclaimerText: {
+    color: '#FF9500',
+    fontSize: 11,
+    fontWeight: '600',
+    flex: 1,
+  },
 });

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TrendingUp, Calendar, Eye, AlertCircle, Download } from 'lucide-react-native';
+import { TrendingUp, Calendar, Eye, AlertCircle, Download, Clock, Activity } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BarChart } from 'react-native-chart-kit';
+import { BarChart, LineChart } from 'react-native-chart-kit';
 import { useTheme } from '../../contexts/ThemeContext';
+import { generateEyeHealthReport } from '../../utils/pdfGenerator';
+import Toast from 'react-native-toast-message';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -21,6 +23,12 @@ export default function ResultsScreen() {
   const { theme } = useTheme();
   const [results, setResults] = useState<TestResult[]>([]);
   const [overallScore, setOverallScore] = useState(85);
+  const [habits, setHabits] = useState({
+    dailyScreenTime: 5.2,
+    breakCompliance: 78,
+    eyeStrainScore: 12,
+    blinkRate: 14
+  });
 
   useEffect(() => {
     loadResults();
@@ -64,6 +72,23 @@ export default function ResultsScreen() {
       }
     } catch (error) {
       console.error('Error loading results:', error);
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      await generateEyeHealthReport(results, habits);
+      Toast.show({
+        type: 'success',
+        text1: 'Report Generated',
+        text2: 'Your eye health report is ready to share.'
+      });
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to generate PDF report.'
+      });
     }
   };
 
@@ -140,7 +165,7 @@ export default function ResultsScreen() {
         <View style={[styles.scoreCard, { backgroundColor: theme.colors.card }]}>
           <View style={styles.scoreHeader}>
             <Text style={[styles.scoreTitle, { color: theme.colors.text }]}>Overall Eye Health Score</Text>
-            <TouchableOpacity style={styles.downloadButton}>
+            <TouchableOpacity style={styles.downloadButton} onPress={handleDownload}>
               <Download size={20} color={theme.colors.primary} />
             </TouchableOpacity>
           </View>
@@ -154,6 +179,33 @@ export default function ResultsScreen() {
           <Text style={[styles.scoreDescription, { color: theme.colors.subtext }]}>
             Good overall eye health. Continue regular monitoring.
           </Text>
+        </View>
+
+        {/* Intelligence Stats */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Eye Intelligence Stats</Text>
+          <View style={styles.statsGrid}>
+            <View style={[styles.statItem, { backgroundColor: theme.colors.card }]}>
+              <Clock size={24} color="#3B82F6" />
+              <Text style={[styles.statValue, { color: theme.colors.text }]}>{habits.dailyScreenTime}h</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.subtext }]}>Screen Time</Text>
+            </View>
+            <View style={[styles.statItem, { backgroundColor: theme.colors.card }]}>
+              <Activity size={24} color="#10B981" />
+              <Text style={[styles.statValue, { color: theme.colors.text }]}>{habits.breakCompliance}%</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.subtext }]}>Break Score</Text>
+            </View>
+            <View style={[styles.statItem, { backgroundColor: theme.colors.card }]}>
+              <AlertCircle size={24} color="#F59E0B" />
+              <Text style={[styles.statValue, { color: theme.colors.text }]}>{habits.eyeStrainScore}</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.subtext }]}>Strain Index</Text>
+            </View>
+            <View style={[styles.statItem, { backgroundColor: theme.colors.card }]}>
+              <Eye size={24} color="#8B5CF6" />
+              <Text style={[styles.statValue, { color: theme.colors.text }]}>{habits.blinkRate}</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.subtext }]}>Blink Rate</Text>
+            </View>
+          </View>
         </View>
 
         {/* Trends */}
@@ -265,6 +317,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
+  section: {
+    marginBottom: 24,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  statItem: {
+    width: (screenWidth - 52) / 2,
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
   scoreCard: {
     borderRadius: 16,
     padding: 20,
@@ -340,9 +422,6 @@ const styles = StyleSheet.create({
   trendsText: {
     fontSize: 14,
     lineHeight: 20,
-  },
-  section: {
-    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 20,

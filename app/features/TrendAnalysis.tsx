@@ -178,7 +178,7 @@ export default function TrendAnalysis() {
           <Calendar size={24} color="#8B5CF6" />
           <View style={styles.insightContent}>
             <Text style={styles.insightTitle}>Consistency is Key</Text>
-            <Text style={styles.insightDesc}>You've completed {history.length} checkups. Keep it up!</Text>
+            <Text style={styles.insightDesc}>You&apos;ve completed {history.length} checkups. Keep it up!</Text>
           </View>
         </MotiView>
       </View>

@@ -3,17 +3,17 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { AuthProvider, useAuth } from '../../context/AuthContext'; 
-import BiometricAuthScreen from './features/BiometricAuthScreen';
+import BiometricAuthScreen from '../features/BiometricAuthScreen';
 
 // Import your feature components
-import AmslerGrid from './features/AmslerGrid';
-import ContrastSensitivity from './features/ContrastSensitivity';
-import ResultsDashboard from './features/ResultsDashboard';
-import SaccadicTraining from './exercises/SaccadicTraining';
-import UserProfile from './features/UserProfile';
-import DeviceCalibration from './features/DeviceCalibration';
-import CalibrationScreen from './features/CalibrationScreen';
-import PupilResponseTest from './features/PupilResponseTest'; // Import the new component
+import AmslerGrid from '../features/AmslerGrid';
+import ContrastSensitivity from '../features/ContrastSensitivity';
+import ResultsDashboard from '../features/ResultsDashboard';
+import SaccadicTraining from '../exercises/SaccadicTraining';
+import UserProfile from '../features/UserProfile';
+import DeviceCalibration from '../features/DeviceCalibration';
+import CalibrationScreen from '../features/CalibrationScreen';
+import PupilResponseTest from '../features/PupilResponseTest'; 
 
 const Tab = createBottomTabNavigator();
 

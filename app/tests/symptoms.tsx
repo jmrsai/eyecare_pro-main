@@ -35,7 +35,6 @@ const conditions = {
 
 const SymptomCheckerScreen = () => {
   const { user } = useAuth();
-  const { COLORS, SIZES, FONTS, SHADOWS } = appTheme;
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [analysisResults, setAnalysisResults] = useState<{name: string, score: number}[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -182,7 +181,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: { paddingBottom: 20 },
   headerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20 },
-  backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', ...appTheme.SHADOWS.light },
+  backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#1E293B', marginLeft: 15 },
   scrollContainer: { padding: 24 },
   sectionTitle: { fontSize: 22, fontWeight: 'bold', color: '#1E293B' },
@@ -202,88 +201,8 @@ const styles = StyleSheet.create({
   disclaimerBox: { flexDirection: 'row', alignItems: 'center', marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(59, 130, 246, 0.2)' },
   disclaimerText: { fontSize: 12, color: '#64748B', marginLeft: 8 },
   footer: { padding: 24, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  analyzeButton: { backgroundColor: '#3B82F6', paddingVertical: 18, borderRadius: 20, alignItems: 'center', ...appTheme.SHADOWS.medium },
+  analyzeButton: { backgroundColor: '#3B82F6', paddingVertical: 18, borderRadius: 20, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
   analyzeButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
-});
-
-export default SymptomCheckerScreen;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingTop: 15,
-    paddingBottom: 10,
-  },
-  backButton: {
-    marginRight: 15,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 24,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  scrollContainer: {
-    padding: 20,
-  },
-  subtitle: {
-    color: '#fff',
-    fontSize: 18,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  symptomsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  symptomChip: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    margin: 8,
-  },
-  selectedSymptomChip: {
-    backgroundColor: '#38bdf8',
-  },
-  symptomText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  selectedSymptomText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  footer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  analyzeButton: {
-    backgroundColor: '#38bdf8',
-    paddingVertical: 18,
-    borderRadius: 30,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  analyzeButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
 });
 
 export default SymptomCheckerScreen;

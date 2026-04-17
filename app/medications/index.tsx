@@ -6,7 +6,13 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useTheme } from '../../contexts/ThemeContext';
+
+// Initialize Gemini AI
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -159,6 +165,11 @@ export default function MedicationsScreen() {
   };
 
   const handleOCR = async () => {
+    if (!GEMINI_API_KEY) {
+      Alert.alert('Configuration Error', 'Gemini API Key is not configured. Please set EXPO_PUBLIC_GEMINI_API_KEY.');
+      return;
+    }
+
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'Camera permission is required for OCR.');
@@ -168,20 +179,50 @@ export default function MedicationsScreen() {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 1,
+      quality: 0.8,
     });
 
     if (!result.canceled) {
       setLoading(true);
-      // SIMULATED OCR LOGIC
-      // In a real app, you would upload `result.assets[0].uri` to Google Cloud Vision or AWS Textract
-      setTimeout(() => {
-        setNewName('Amoxicillin');
-        setNewDosage('500mg');
-        setNewFrequency('3');
+      try {
+        const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = "Analyze this medical prescription label. Extract the medication name, dosage, frequency per day, and any specific times mentioned. Return ONLY valid JSON with keys: name, dosage, frequency, times (array of HH:MM strings). If info is missing, use empty strings or reasonable defaults (like 09:00 for a morning dose).";
+
+        const aiResult = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: base64,
+              mimeType: "image/jpeg"
+            }
+          }
+        ]);
+
+        const response = await aiResult.response;
+        const text = response.text();
+        
+        // Clean and parse JSON
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          setNewName(parsed.name || '');
+          setNewDosage(parsed.dosage || '');
+          setNewFrequency(parsed.frequency?.toString() || '1');
+          
+          Alert.alert('Scanned!', 'Medication details extracted. Please verify the information before saving.');
+        } else {
+          throw new Error('Could not parse AI response');
+        }
+      } catch (error) {
+        console.error('OCR Error:', error);
+        Alert.alert('OCR Failed', 'Failed to analyze the image. You can still enter details manually.');
+      } finally {
         setLoading(false);
-        Alert.alert('Scanned!', 'Medication details extracted. Please verify.');
-      }, 2000);
+      }
     }
   };
 

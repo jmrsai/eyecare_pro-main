@@ -9,7 +9,7 @@
       "dom",
       "esnext"
     ],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "module": "esnext",
     "noEmit": true,
     "strict": true,

@@ -20,8 +20,21 @@
       },
       "permissions": [
         "CAMERA",
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM"
       ]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.eyecare.pro",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ],
+        "NSCameraUsageDescription": "EyeCare Pro needs access to your camera for eye health screening and prescription scanning."
+      }
     },
     "extra": {
       "router": {},
@@ -34,7 +47,9 @@
       "expo-router",
       "expo-secure-store",
       "expo-sqlite",
-      "expo-localization"
+      "expo-localization",
+      "expo-notifications",
+      "expo-camera"
     ]
   }
 }

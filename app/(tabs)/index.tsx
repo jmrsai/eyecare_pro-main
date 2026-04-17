@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, Palette, Target, Grid3X3, Zap, Clock, BookOpen, AlertTriangle, Settings, ClipboardList } from 'lucide-react-native';
+import { Eye, Palette, Target, Grid3X3, Zap, Clock, BookOpen, AlertTriangle, Settings, ClipboardList, Shield, MapPin } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { StyledTouchableOpacity } from '../../components/StyledTouchableOpacity';
+import ConsentModal from '../../components/Medical/ConsentModal';
 
 const diagnosticTests = [
   {
@@ -20,7 +21,7 @@ const diagnosticTests = [
     title: 'Symptom Checker',
     description: 'Assess your digital eye strain levels',
     icon: ClipboardList,
-    route: '/tests/symptoms',
+    route: '/symptoms',
   },
   {
     id: 'accommodation',
@@ -78,6 +79,13 @@ const diagnosticTests = [
     icon: BookOpen,
     route: '/tests/reading-speed',
   },
+  {
+    id: 'doctor-finder',
+    title: 'Find a Specialist',
+    description: 'Locate ophthalmologists and eye clinics near you',
+    icon: MapPin,
+    route: '/doctor-finder',
+  },
 ];
 
 export default function TestsScreen() {
@@ -129,33 +137,112 @@ export default function TestsScreen() {
       color: '#BFDBFE',
       opacity: 0.9,
     },
+    badgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    encryptionBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      gap: 4,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 16,
+      marginTop: 10,
+    },
+    trainingCTA: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      borderRadius: 25,
+      marginBottom: 25,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 10,
+      elevation: 5,
+    },
+    trainingCTALeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 15,
+    },
+    trainingIconBox: {
+      width: 48,
+      height: 48,
+      borderRadius: 15,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    trainingCTATitle: {
+      color: '#FFF',
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    trainingCTASubtitle: {
+      color: 'rgba(255,255,255,0.8)',
+      fontSize: 12,
+      marginTop: 2,
+    },
+    trainingBadge: {
+      backgroundColor: '#10B981',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 10,
+    },
+    trainingBadgeText: {
+      color: '#FFF',
+      fontSize: 10,
+      fontWeight: 'bold',
+    },
+    encryptionText: {
+      fontSize: 8,
+      fontWeight: 'bold',
+      color: '#FFFFFF',
+      letterSpacing: 0.5,
+    },
     content: {
       flex: 1,
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
     },
     disclaimerCard: {
-      backgroundColor: theme.colors.warning,
-      borderRadius: 12,
-      padding: spacing.md,
+      backgroundColor: '#FF950010',
+      borderRadius: 16,
+      padding: spacing.lg,
       marginBottom: spacing.lg,
-      borderLeftWidth: 4,
-      borderLeftColor: theme.colors.warning,
+      borderWidth: 1,
+      borderColor: '#FF950030',
+    },
+    disclaimerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+      gap: 8,
     },
     disclaimerTitle: {
       ...typography.h3,
-      color: theme.colors.text,
-      marginBottom: spacing.sm,
+      color: '#FF9500',
     },
     disclaimerText: {
       ...typography.body,
       color: theme.colors.text,
       lineHeight: 20,
+      opacity: 0.8,
     },
-    sectionTitle: {
-      ...typography.h2,
-      color: theme.colors.text,
-      marginBottom: spacing.md,
+    learnMore: {
+      ...typography.caption,
+      fontWeight: 'bold',
+      marginTop: spacing.sm,
     },
     testCard: {
       backgroundColor: theme.colors.card,
@@ -228,6 +315,7 @@ export default function TestsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ConsentModal />
       <LinearGradient
         colors={[theme.colors.primary, '#1D4ED8']}
         style={styles.header}
@@ -241,19 +329,69 @@ export default function TestsScreen() {
           </StyledTouchableOpacity>
         </View>
         <Text style={styles.headerTitle}>EyeCare Pro</Text>
-        <Text style={styles.headerSubtitle}>Comprehensive Eye Health Screening</Text>
+        <View style={styles.badgeRow}>
+          <Text style={styles.headerSubtitle}>Comprehensive Eye Health Screening</Text>
+          <View style={styles.encryptionBadge}>
+            <Shield size={10} color="#FFFFFF" />
+            <Text style={styles.encryptionText}>E2E ENCRYPTED</Text>
+          </View>
+        </View>
       </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.disclaimerCard}>
-          <Text style={styles.disclaimerTitle}>⚠️ Important Medical Disclaimer</Text>
+          <View style={styles.disclaimerHeader}>
+            <AlertTriangle size={20} color="#FF9500" />
+            <Text style={styles.disclaimerTitle}>Clinical Disclaimer</Text>
+          </View>
           <Text style={styles.disclaimerText}>
-            These tests are for screening purposes only and are NOT a substitute for professional medical examination. 
-            Always consult with a qualified eye care professional for comprehensive eye examinations and medical advice.
+            EyeCare Pro is for screening and educational purposes only. It is <Text style={{ fontWeight: 'bold' }}>NOT</Text> a substitute for professional medical diagnosis or treatment.
           </Text>
+          <TouchableOpacity onPress={() => router.push('/legal' as any)}>
+            <Text style={[styles.learnMore, { color: theme.colors.primary }]}>Read full legal protection details ›</Text>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Available Tests</Text>
+        {/* Daily Training CTA */}
+        <TouchableOpacity 
+          style={[styles.trainingCTA, { backgroundColor: theme.colors.primary }]}
+          onPress={() => router.push('/training')}
+        >
+          <View style={styles.trainingCTALeft}>
+            <View style={styles.trainingIconBox}>
+              <Zap size={24} color="#FFF" fill="#FFF" />
+            </View>
+            <View>
+              <Text style={styles.trainingCTATitle}>Daily Visual Gym</Text>
+              <Text style={styles.trainingCTASubtitle}>Start your 5-min neural routine</Text>
+            </View>
+          </View>
+          <View style={styles.trainingBadge}>
+            <Text style={styles.trainingBadgeText}>READY</Text>
+          </View>
+        </TouchableOpacity>
+
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Diagnostic Tests</Text>
+
+        <StyledTouchableOpacity
+          style={[styles.testCard, { backgroundColor: theme.colors.primary + '10', borderColor: theme.colors.primary, borderWidth: 1 }]}
+          onPress={() => router.push('/tests/quick-assessment' as any)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.testCardContent}>
+            <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary }]}>
+              <Zap size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.testInfo}>
+              <Text style={[styles.testTitle, { color: theme.colors.primary }]}>Quick Assessment</Text>
+              <Text style={styles.testDescription}>3-step early diagnosis flow (1 min)</Text>
+              <View style={styles.testMeta}>
+                <Clock size={14} color={theme.colors.subtext} />
+                <Text style={styles.testDuration}>1 min • AI Assisted</Text>
+              </View>
+            </View>
+          </View>
+        </StyledTouchableOpacity>
         
         {diagnosticTests.map((test) => {
           const IconComponent = test.icon;

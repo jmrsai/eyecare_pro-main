@@ -1,145 +1,232 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Animated, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Play, RotateCcw, Star, Trophy } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions, Image } from 'react-native';
+import { MotiView, AnimatePresence } from 'moti';
+import { ArrowLeft, Star, Volume2, VolumeX } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
-const INSECT_SIZE = 40;
-const CHAMELEON_SIZE = 80;
+const GAME_HEIGHT = height * 0.6;
 
-const getRandomPosition = () => ({
-  x: Math.random() * (width - INSECT_SIZE),
-  y: Math.random() * (height - 200 - INSECT_SIZE) + 100,
-});
+const LEVELS = [
+  { id: 1, name: 'Lazy Afternoon', speed: 2000, duration: 25000, target: 10 },
+  { id: 2, name: 'Buzzing Jungle', speed: 1500, duration: 35000, target: 15 },
+  { id: 3, name: 'Fly Frenzy', speed: 1000, duration: 45000, target: 25 },
+];
 
-export default function HungryChameleonGame() {
-  const [gamePhase, setGamePhase] = useState<'intro' | 'playing' | 'complete'>('intro');
+export default function HungryChameleonScreen() {
+  const [level, setLevel] = useState(0);
+  const [gameState, setGameState] = useState<'idle' | 'countdown' | 'playing' | 'complete'>('idle');
+  const [countdown, setCountdown] = useState(3);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [insects, setInsects] = useState<{ id: number; position: Animated.ValueXY; type: string }[]>([]);
-  const insectId = useRef(0);
+  const [flyPos, setFlyPos] = useState({ x: 0, y: 0 });
+  const [tonguePos, setTonguePos] = useState<{ x: number, y: number } | null>(null);
+  const [stars, setStars] = useState(0);
 
-  const createInsect = useCallback(() => {
-    const newInsect = {
-      id: insectId.current++,
-      position: new Animated.ValueXY(getRandomPosition()),
-      type: Math.random() > 0.5 ? '🦋' : '🐞',
-    };
-    setInsects(prev => [...prev, newInsect]);
-
-    Animated.timing(newInsect.position, {
-      toValue: getRandomPosition(),
-      duration: 2000 + Math.random() * 1000,
-      useNativeDriver: false,
-    }).start(() => {
-      setInsects(prev => prev.filter(i => i.id !== newInsect.id));
-    });
-  }, []);
+  const startLevel = () => {
+    setGameState('countdown');
+    setCountdown(3);
+    setScore(0);
+  };
 
   useEffect(() => {
-    if (gamePhase !== 'playing') return;
+    if (gameState === 'countdown') {
+      if (countdown > 0) {
+        const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+        return () => clearTimeout(timer);
+      } else {
+        setGameState('playing');
+        spawnFly();
+      }
+    }
+  }, [gameState, countdown]);
 
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setGamePhase('complete');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    const insectInterval = setInterval(createInsect, 1200);
-
-    return () => {
-      clearInterval(timer);
-      clearInterval(insectInterval);
-    };
-  }, [gamePhase, createInsect]);
-
-  const handleCatch = (insectId: number) => {
-    setInsects(prev => prev.filter(i => i.id !== insectId));
-    setScore(prev => prev + 10);
+  const spawnFly = () => {
+    const newX = Math.random() * (width - 60) + 30;
+    const newY = Math.random() * (GAME_HEIGHT - 60) + 30;
+    setFlyPos({ x: newX, y: newY });
   };
 
-  const startGame = () => {
-    setGamePhase('playing');
-    setScore(0);
-    setTimeLeft(30);
-    setInsects([]);
+  useEffect(() => {
+    if (gameState === 'playing') {
+      const currentLevel = LEVELS[level];
+      const flyInterval = setInterval(spawnFly, currentLevel.speed);
+
+      const levelTimer = setTimeout(() => {
+        clearInterval(flyInterval);
+        setGameState('complete');
+        const earnedStars = score >= currentLevel.target ? 3 : score >= currentLevel.target / 2 ? 2 : 1;
+        setStars(earnedStars);
+        updateStats(earnedStars * 10);
+      }, currentLevel.duration);
+
+      return () => {
+        clearInterval(flyInterval);
+        clearTimeout(levelTimer);
+      };
+    }
+  }, [gameState, level, score]);
+
+  const updateStats = async (earnedStars: number) => {
+    try {
+      const savedStats = await AsyncStorage.getItem('kidsStats');
+      let stats = savedStats ? JSON.parse(savedStats) : { totalStars: 0, gamesPlayed: 0, streakDays: 0, badges: [], todayPlayTime: 0 };
+      stats.totalStars += earnedStars;
+      stats.gamesPlayed += 1;
+      await AsyncStorage.setItem('kidsStats', JSON.stringify(stats));
+    } catch (error) {
+      console.error('Error updating stats:', error);
+    }
   };
 
-  const resetGame = () => {
-    setGamePhase('intro');
+  const handleFlyTap = () => {
+    if (gameState === 'playing' && !tonguePos) {
+      setScore(prev => prev + 1);
+      setTonguePos({ x: flyPos.x, y: flyPos.y });
+      
+      // Chameleon tongue animation duration
+      setTimeout(() => {
+        setTonguePos(null);
+        spawnFly();
+      }, 200);
+    }
   };
-
-    if (gamePhase === 'intro') {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.introContainer}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <ArrowLeft size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          <Text style={styles.introTitle}>Hungry Chameleon 🦎</Text>
-          <Text style={styles.introText}>
-            Help Charlie the chameleon catch as many insects as you can before time runs out!
-          </Text>
-          <TouchableOpacity style={styles.startButton} onPress={startGame}>
-            <Play size={24} color="#FFFFFF" />
-            <Text style={styles.startButtonText}>Start Catching</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (gamePhase === 'complete') {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.completeContainer}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <ArrowLeft size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Trophy size={80} color="#FFD700" />
-          <Text style={styles.completeTitle}>Time's Up!</Text>
-          <Text style={styles.completeText}>You caught {score / 10} insects!</Text>
-           <View style={styles.scoreCard}>
-            <View style={styles.scoreItem}>
-              <Star size={24} color="#FFD700" />
-              <Text style={styles.scoreNumber}>{score}</Text>
-              <Text style={styles.scoreLabel}>Points</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.playAgainButton} onPress={resetGame}>
-            <RotateCcw size={24} color="#FFFFFF" />
-            <Text style={styles.playAgainText}>Play Again</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.header}>
-        <Text style={styles.headerText}>Time: {timeLeft}s | Score: {score}</Text>
-      </LinearGradient>
-      <View style={styles.gameArea}>
-        {insects.map(insect => (
-          <Animated.View key={insect.id} style={[insect.position.getLayout(), styles.insect]}>
-            <TouchableOpacity onPress={() => handleCatch(insect.id)}>
-              <Text style={styles.insectText}>{insect.type}</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        ))}
+      <LinearGradient colors={['#A7F3D0', '#065F46']} style={StyleSheet.absoluteFill} />
+      
+      {/* Jungle leaves decoration */}
+      <Text style={[styles.leaf, { top: 40, left: -20, fontSize: 100 }]}>🍃</Text>
+      <Text style={[styles.leaf, { top: height - 200, right: -20, fontSize: 120, transform: [{ rotate: '180deg' }] }]}>🍃</Text>
 
-        <View style={styles.chameleonContainer}>
-          <Text style={styles.chameleon}>🦎</Text>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.levelName}>{LEVELS[level].name}</Text>
+        <View style={styles.scoreContainer}>
+          <Text style={styles.scoreText}>🪰 {score} / {LEVELS[level].target}</Text>
         </View>
+      </View>
+
+      <View style={styles.gameArea}>
+        <AnimatePresence>
+          {gameState === 'idle' && (
+            <MotiView
+              from={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              style={styles.menuCard}
+            >
+              <Text style={styles.chameleonEmoji}>🦎</Text>
+              <Text style={styles.menuTitle}>Hungry Charlie</Text>
+              <Text style={styles.menuSubtitle}>Charlie is hungry! Help him catch the flies by tapping them as they appear.</Text>
+              <TouchableOpacity style={styles.startButton} onPress={startLevel}>
+                <Text style={styles.startButtonText}>Feed Charlie</Text>
+              </TouchableOpacity>
+            </MotiView>
+          )}
+
+          {gameState === 'countdown' && (
+            <MotiView
+              key="countdown"
+              from={{ opacity: 0, scale: 2 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              style={styles.countdownContainer}
+            >
+              <Text style={styles.countdownText}>{countdown}</Text>
+            </MotiView>
+          )}
+
+          {gameState === 'playing' && (
+            <>
+              {/* The Fly */}
+              <MotiView
+                key="fly"
+                animate={{
+                  translateX: flyPos.x,
+                  translateY: flyPos.y,
+                }}
+                transition={{
+                  type: 'timing',
+                  duration: 200,
+                }}
+                style={styles.flyContainer}
+              >
+                <TouchableOpacity onPress={handleFlyTap} activeOpacity={1}>
+                  <MotiView
+                    animate={{
+                      translateY: [0, -5, 0],
+                      rotate: ['-10deg', '10deg', '-10deg'],
+                    }}
+                    transition={{
+                      loop: true,
+                      duration: 100,
+                    }}
+                  >
+                    <Text style={{ fontSize: 40 }}>🪰</Text>
+                  </MotiView>
+                </TouchableOpacity>
+              </MotiView>
+
+              {/* The Chameleon (Charlie) */}
+              <View style={styles.chameleonContainer}>
+                {tonguePos && (
+                  <MotiView
+                    from={{ height: 0 }}
+                    animate={{ height: Math.sqrt(Math.pow(tonguePos.x - width / 2, 2) + Math.pow(height - 100 - tonguePos.y, 2)) }}
+                    style={[
+                      styles.tongue,
+                      {
+                        left: width / 2,
+                        bottom: 80,
+                        transform: [
+                          { rotate: `${Math.atan2(tonguePos.x - width / 2, height - 100 - tonguePos.y) * (180 / Math.PI)}deg` },
+                          { translateY: -Math.sqrt(Math.pow(tonguePos.x - width / 2, 2) + Math.pow(height - 100 - tonguePos.y, 2)) / 2 }
+                        ]
+                      }
+                    ]}
+                  />
+                )}
+                <Text style={{ fontSize: 100 }}>🦎</Text>
+              </View>
+            </>
+          )}
+
+          {gameState === 'complete' && (
+            <MotiView
+              from={{ opacity: 0, translateY: 50 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              style={styles.winCard}
+            >
+              <Text style={styles.winTitle}>{score >= LEVELS[level].target ? 'Stomach Full!' : 'Nice Try!'}</Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3].map(i => (
+                  <MotiView
+                    key={i}
+                    from={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 200 }}
+                  >
+                    <Star size={40} color="#FFD700" fill={i <= stars ? "#FFD700" : "transparent"} style={{ margin: 5 }} />
+                  </MotiView>
+                ))}
+              </View>
+              <Text style={styles.winSubtitle}>Charlie caught {score} flies!</Text>
+              <TouchableOpacity 
+                style={styles.nextButton} 
+                onPress={() => level < LEVELS.length - 1 ? (setLevel(level + 1), startLevel()) : router.back()}
+              >
+                <Text style={styles.nextButtonText}>
+                  {level < LEVELS.length - 1 ? 'Go Deeper in Jungle' : 'Finish Lunch'}
+                </Text>
+              </TouchableOpacity>
+            </MotiView>
+          )}
+        </AnimatePresence>
       </View>
     </SafeAreaView>
   );
@@ -148,139 +235,143 @@ export default function HungryChameleonGame() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FBBF24',
+  },
+  leaf: {
+    position: 'absolute',
+    opacity: 0.3,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
+    zIndex: 10,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  headerText: {
-    fontSize: 20,
-    color: 'white',
+  levelName: {
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  scoreContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  scoreText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   gameArea: {
     flex: 1,
   },
-  insect: {
-    position: 'absolute',
-    width: INSECT_SIZE,
-    height: INSECT_SIZE,
+  menuCard: {
+    marginHorizontal: 30,
+    marginTop: height * 0.1,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 32,
+    padding: 30,
+    alignItems: 'center',
+    elevation: 10,
+  },
+  chameleonEmoji: {
+    fontSize: 80,
+    marginBottom: 20,
+  },
+  menuTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#065F46',
+    marginBottom: 12,
+  },
+  menuSubtitle: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 30,
+  },
+  startButton: {
+    backgroundColor: '#059669',
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 20,
+  },
+  startButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  countdownContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  insectText: {
-    fontSize: 28,
+  countdownText: {
+    fontSize: 120,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  flyContainer: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chameleonContainer: {
     position: 'absolute',
     bottom: 20,
-    left: width / 2 - CHAMELEON_SIZE / 2,
-    alignItems: 'center',
-  },
-  chameleon: {
-    fontSize: CHAMELEON_SIZE - 20,
-  },
-   introContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-     backgroundColor: '#FBBF24',
-  },
-  introTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  introText: {
-    fontSize: 18,
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  startButton: {
-    backgroundColor: '#B45309',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  startButtonText: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  completeContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#FBBF24',
-  },
-  completeTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    marginVertical: 20,
-  },
-  completeText: {
-    fontSize: 20,
-    color: 'white',
-    marginBottom: 30,
-  },
-  playAgainButton: {
-    backgroundColor: '#B45309',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  playAgainText: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-   scoreCard: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
     width: '100%',
-  },
-  scoreItem: {
     alignItems: 'center',
-    flex: 1,
   },
-  scoreNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  scoreLabel: {
-    fontSize: 12,
-    color: '#C7D2FE',
-  },
-   backButton: {
+  tongue: {
     position: 'absolute',
-    top: 40,
-    left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
+    width: 6,
+    backgroundColor: '#F87171',
+    borderRadius: 3,
+  },
+  winCard: {
+    marginHorizontal: 30,
+    marginTop: height * 0.1,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 32,
+    padding: 30,
     alignItems: 'center',
+  },
+  winTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#065F46',
+    marginBottom: 10,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  winSubtitle: {
+    fontSize: 20,
+    color: '#374151',
+    marginBottom: 30,
+  },
+  nextButton: {
+    backgroundColor: '#10B981',
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 20,
+  },
+  nextButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

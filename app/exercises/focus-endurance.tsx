@@ -122,7 +122,7 @@ export default function FocusEndurance() {
           >
             <CheckCircle2 size={80} color="#10B981" />
             <Text style={styles.completeTitle}>Endurance Built!</Text>
-            <Text style={styles.completeDesc}>You've strengthened your eye focusing muscles. Excellent work!</Text>
+            <Text style={styles.completeDesc}>You&apos;ve strengthened your eye focusing muscles. Excellent work!</Text>
             <Pressable onPress={() => router.back()} style={styles.finishBtn}>
               <Text style={styles.finishBtnText}>Finish Routine</Text>
             </Pressable>

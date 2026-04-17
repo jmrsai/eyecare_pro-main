@@ -122,7 +122,7 @@ export default function PostWorkDestress() {
           >
             <CheckCircle2 size={80} color="#10B981" />
             <Text style={styles.completeTitle}>Stress Released</Text>
-            <Text style={styles.completeDesc}>You've given your eyes the recovery they deserve. Sleep well!</Text>
+            <Text style={styles.completeDesc}>You&apos;ve given your eyes the recovery they deserve. Sleep well!</Text>
             <Pressable onPress={() => router.back()} style={styles.finishBtn}>
               <Text style={styles.finishBtnText}>Return Home</Text>
             </Pressable>
