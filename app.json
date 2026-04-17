@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "EyeCare Pro",
+    "slug": "eyecare-pro",
+    "version": "1.0.0",
+    "newArchEnabled": false,
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "android": {
+      "package": "com.eyecare.pro",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO"
+      ]
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3db747e7-82ba-4ba8-baf2-258a5591e49c"
+      }
+    },
+    "owner": "opthas",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-sqlite"
+    ]
+  }
+}
