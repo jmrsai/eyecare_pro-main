@@ -3,9 +3,13 @@ const functions = require('firebase-functions');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // IMPORTANT: The user should set this in their Firebase environment
-// firebase functions:config:set gemini.key="YOUR_API_KEY"
-const API_KEY = functions.config().gemini ? functions.config().gemini.key : "YOUR_FALLBACK_GEMINI_API_KEY";
-const genAI = new GoogleGenerativeAI(API_KEY);
+// firebase functions:secrets:set GEMINI_API_KEY
+// Locally, use a .env file in the functions directory
+const API_KEY = process.env.GEMINI_API_KEY || functions.config().gemini?.key;
+if (!API_KEY) {
+  console.warn("GEMINI_API_KEY is not set. AI features may not work.");
+}
+const genAI = new GoogleGenerativeAI(API_KEY || "dummy_key");
 
 exports.chat = functions.https.onCall(async (data, context) => {
   const userMessage = data.message;
