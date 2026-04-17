@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Dumbbell, Clock, Target, Eye, Zap, Moon, Sun, TrendingUp, Play, Wind } from 'lucide-react-native';
+import { Dumbbell, Clock, Target, Eye, Zap, Moon, Sun, TrendingUp, Play } from 'lucide-react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

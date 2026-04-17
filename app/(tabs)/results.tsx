@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingUp, Calendar, Eye, AlertCircle, Download, Clock, Activity } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BarChart, LineChart } from 'react-native-chart-kit';
+import { BarChart } from 'react-native-chart-kit';
 import { useTheme } from '../../contexts/ThemeContext';
 import { generateEyeHealthReport } from '../../utils/pdfGenerator';
 import Toast from 'react-native-toast-message';
@@ -22,8 +22,8 @@ interface TestResult {
 export default function ResultsScreen() {
   const { theme } = useTheme();
   const [results, setResults] = useState<TestResult[]>([]);
-  const [overallScore, setOverallScore] = useState(85);
-  const [habits, setHabits] = useState({
+  const [overallScore] = useState(85);
+  const [habits] = useState({
     dailyScreenTime: 5.2,
     breakCompliance: 78,
     eyeStrainScore: 12,
@@ -32,9 +32,9 @@ export default function ResultsScreen() {
 
   useEffect(() => {
     loadResults();
-  }, []);
+  }, [loadResults]);
 
-  const loadResults = async () => {
+  const loadResults = useCallback(async () => {
     try {
       const storedResults = await AsyncStorage.getItem('testResults');
       if (storedResults) {
@@ -73,7 +73,7 @@ export default function ResultsScreen() {
     } catch (error) {
       console.error('Error loading results:', error);
     }
-  };
+  }, []);
 
   const handleDownload = async () => {
     try {
@@ -83,7 +83,7 @@ export default function ResultsScreen() {
         text1: 'Report Generated',
         text2: 'Your eye health report is ready to share.'
       });
-    } catch (error) {
+    } catch {
       Toast.show({
         type: 'error',
         text1: 'Error',

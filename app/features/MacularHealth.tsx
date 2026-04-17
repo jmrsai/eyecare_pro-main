@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, Pressable, Text, GestureResponderEvent } from 'react-native';
 import { GLView } from 'expo-gl';
 

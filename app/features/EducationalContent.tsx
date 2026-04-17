@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, TextInput, ScrollView } from 'react-native';
-import { Search, BookOpen, Clock, ChevronRight, Filter, BookMarked, ShieldCheck, Cpu } from 'lucide-react-native';
+import { Search, Clock, ChevronRight, BookMarked, ShieldCheck, Cpu } from 'lucide-react-native';
 import { MotiView } from 'moti';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 
 const CATEGORIES = ['All', 'Conditions', 'Life Habits', 'Technology', 'Prevention'];
 

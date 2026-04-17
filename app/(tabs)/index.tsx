@@ -89,7 +89,7 @@ const diagnosticTests = [
 ];
 
 export default function TestsScreen() {
-  const { theme, typography, spacing, layout } = useTheme();
+  const { theme, typography, spacing } = useTheme();
 
   const handleTestPress = (route: string) => {
     router.push(route as any);

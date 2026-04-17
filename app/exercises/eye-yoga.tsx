@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Eye, ArrowLeft, Play, Pause, CheckCircle, Wind } from 'lucide-react-native';
@@ -63,8 +63,8 @@ export default function EyeYogaExercise() {
   const [isActive, setIsActive] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   
-  const moveAnim = new Animated.Value(0);
-  const pulseAnim = new Animated.Value(1);
+  const moveAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const currentExercise = YOGA_EXERCISES[currentExerciseIndex];
   const totalDuration = YOGA_EXERCISES.reduce((sum, ex) => sum + ex.duration, 0);

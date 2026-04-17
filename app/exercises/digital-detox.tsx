@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Eye, ArrowLeft, Play, Pause, RotateCcw, CheckCircle } from 'lucide-react-native';
@@ -93,7 +93,7 @@ export default function DigitalDetoxExercise() {
   const [isActive, setIsActive] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [currentInstruction, setCurrentInstruction] = useState(0);
-  const fadeAnim = new Animated.Value(1);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const currentExercise = DIGITAL_DETOX_EXERCISES[currentExerciseIndex];
   const totalExercises = DIGITAL_DETOX_EXERCISES.length;

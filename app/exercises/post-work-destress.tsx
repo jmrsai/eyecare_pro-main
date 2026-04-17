@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { MotiView } from 'moti';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, Play, Pause, RotateCcw, CheckCircle2, Wind } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-
-const { width } = Dimensions.get('window');
 
 const EXERCISE_STEPS = [
   { id: 1, title: 'Palming Relaxation', duration: 60, instruction: 'Cover your closed eyes with your palms (creating total darkness) and breathe deeply.' },
@@ -20,6 +18,18 @@ export default function PostWorkDestress() {
   const [isActive, setIsActive] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
 
+  const handleStepComplete = useCallback(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (currentStep < EXERCISE_STEPS.length - 1) {
+      setCurrentStep((s: number) => s + 1);
+      setTimeLeft(EXERCISE_STEPS[currentStep + 1].duration);
+      setIsActive(false);
+    } else {
+      setIsCompleted(true);
+      setIsActive(false);
+    }
+  }, [currentStep]);
+
   useEffect(() => {
     let interval: any;
     if (isActive && timeLeft > 0) {
@@ -30,19 +40,7 @@ export default function PostWorkDestress() {
       handleStepComplete();
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
-
-  const handleStepComplete = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    if (currentStep < EXERCISE_STEPS.length - 1) {
-      setCurrentStep((s: number) => s + 1);
-      setTimeLeft(EXERCISE_STEPS[currentStep + 1].duration);
-      setIsActive(false);
-    } else {
-      setIsCompleted(true);
-      setIsActive(false);
-    }
-  };
+  }, [isActive, timeLeft, handleStepComplete]);
 
   const toggleTimer = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

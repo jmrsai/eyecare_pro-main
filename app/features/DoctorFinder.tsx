@@ -47,7 +47,6 @@ const SAMPLE_DOCTORS = [
 
 export default function DoctorFinder() {
   const { theme } = useTheme();
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -60,8 +59,7 @@ export default function DoctorFinder() {
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
+      await Location.getCurrentPositionAsync({});
       setLoading(false);
     })();
   }, []);

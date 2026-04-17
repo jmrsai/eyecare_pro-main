@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { MotiView } from 'moti';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, Play, Pause, RotateCcw, CheckCircle2, Target } from 'lucide-react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-
-const { width } = Dimensions.get('window');
 
 const EXERCISE_STEPS = [
   { id: 1, title: 'Accommodation Flex', duration: 45, instruction: 'Alternate focus between a nearby object (10cm) and a distant point (3m+).' },
@@ -20,6 +18,18 @@ export default function FocusEndurance() {
   const [isActive, setIsActive] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
 
+  const handleStepComplete = useCallback(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (currentStep < EXERCISE_STEPS.length - 1) {
+      setCurrentStep(s => s + 1);
+      setTimeLeft(EXERCISE_STEPS[currentStep + 1].duration);
+      setIsActive(false);
+    } else {
+      setIsCompleted(true);
+      setIsActive(false);
+    }
+  }, [currentStep]);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isActive && timeLeft > 0) {
@@ -30,19 +40,7 @@ export default function FocusEndurance() {
       handleStepComplete();
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
-
-  const handleStepComplete = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    if (currentStep < EXERCISE_STEPS.length - 1) {
-      setCurrentStep(s => s + 1);
-      setTimeLeft(EXERCISE_STEPS[currentStep + 1].duration);
-      setIsActive(false);
-    } else {
-      setIsCompleted(true);
-      setIsActive(false);
-    }
-  };
+  }, [isActive, timeLeft, handleStepComplete]);
 
   const toggleTimer = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

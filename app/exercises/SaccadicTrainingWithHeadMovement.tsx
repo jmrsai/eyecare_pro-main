@@ -12,21 +12,13 @@ import { DeviceMotion } from 'expo-sensors';
 
 const HEAD_MOVEMENT_THRESHOLD = 0.2; // Radians
 
-interface RotationData {
-  alpha: number;
-  beta: number;
-  gamma: number;
-}
-
 export default function SaccadicTrainingWithHeadMovement() {
   const position = useSharedValue(0);
   const [isHeadMoving, setIsHeadMoving] = useState(false);
-  const [motion, setMotion] = useState<RotationData | null>(null);
 
   useEffect(() => {
     DeviceMotion.setUpdateInterval(500);
     const subscription = DeviceMotion.addListener(deviceMotionData => {
-      setMotion(deviceMotionData.rotation as RotationData);
       if (
         Math.abs(deviceMotionData.rotation.beta) > HEAD_MOVEMENT_THRESHOLD ||
         Math.abs(deviceMotionData.rotation.gamma) > HEAD_MOVEMENT_THRESHOLD
@@ -50,7 +42,7 @@ export default function SaccadicTrainingWithHeadMovement() {
       -1,
       true
     );
-  }, []);
+  }, [position]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: position.value * 300 - 150 }],

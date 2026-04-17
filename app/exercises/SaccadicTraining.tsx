@@ -19,7 +19,7 @@ export default function SaccadicTraining() {
       -1,
       true
     );
-  }, []);
+  }, [position]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: position.value * 300 - 150 }],
