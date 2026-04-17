@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { ArrowLeft, AlertCircle, CheckCircle2, Info, ChevronRight, HelpCircle, Activity } from 'lucide-react-native';
+import { ArrowLeft, AlertCircle, CheckCircle2, ChevronRight, HelpCircle, Activity } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MotiView, AnimatePresence } from 'moti';
+import { MotiView } from 'moti';
 
 const SYMPTOMS = [
   { id: 'dryness', label: 'Dryness or Grittiness', icon: '💧' },
@@ -79,7 +79,6 @@ export default function SymptomChecker() {
   };
 
   const getResult = () => {
-    const key = selectedSymptoms.sort().join('-');
     if (selectedSymptoms.includes('floaters')) return ANALYSES['floaters-sensitivity'];
     if (selectedSymptoms.includes('double')) return ANALYSES['floaters-sensitivity'];
     if (selectedSymptoms.includes('dryness') && selectedSymptoms.includes('burning')) return ANALYSES['dryness-redness-burning'];

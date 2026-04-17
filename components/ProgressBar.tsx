@@ -29,7 +29,7 @@ export function ProgressBar({
       duration: 800,
       easing: Easing.bezier(0.25, 0.1, 0.25, 1),
     });
-  }, [progress]);
+  }, [progress, width]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

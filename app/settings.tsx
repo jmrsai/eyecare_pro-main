@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Switch, Linking, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Volume2, VolumeX, Moon, Sun, Bell, Globe, Shield, Info, Smartphone, Mail, Lock, Clock } from 'lucide-react-native';
+import { ArrowLeft, Volume2, VolumeX, Moon, Sun, Bell, Shield, Info, Smartphone, Mail, Lock, Clock } from 'lucide-react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../contexts/ThemeContext';

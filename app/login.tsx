@@ -8,7 +8,6 @@ import { LogIn, UserPlus, Eye, EyeOff } from 'lucide-react-native';
 import appTheme from '../styles/theme';
 
 export default function LoginScreen() {
-  const { COLORS, SIZES, FONTS, SHADOWS } = appTheme;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);

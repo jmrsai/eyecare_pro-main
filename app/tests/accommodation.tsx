@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Animated, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, RotateCcw, Eye, Target } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -7,8 +7,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import { saveTestResult } from '../../lib/firebase';
-
-const { width } = Dimensions.get('window');
 
 export default function AccommodationTest() {
   const { theme } = useTheme();
@@ -21,7 +19,7 @@ export default function AccommodationTest() {
   const focusAnim = useRef(new Animated.Value(0)).current; // 0 = blur, 1 = sharp
   const sizeAnim = useRef(new Animated.Value(1)).current; // 1 = normal, 0.5 = small (far)
 
-  const saveResults = async () => {
+  const saveResults = useCallback(async () => {
     try {
       const result = {
         testType: 'Accommodation',
@@ -43,7 +41,44 @@ export default function AccommodationTest() {
     } catch (error) {
       console.error('Error saving accommodation results:', error);
     }
-  };
+  }, [user]);
+
+  const startNearPhase = useCallback(() => {
+    setPhase('near');
+    setTimeLeft(10);
+    
+    // Animate to "Near" state: Large, Sharp
+    Animated.parallel([
+      Animated.timing(focusAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.spring(sizeAnim, {
+        toValue: 1.5,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [focusAnim, sizeAnim]);
+
+  const startFarPhase = useCallback(() => {
+    setPhase('far');
+    setTimeLeft(10);
+
+    // Animate to "Far" state: Small, maybe slightly blurry initially then sharp? 
+    // For this simulation, we'll just make it small to simulate distance.
+    Animated.parallel([
+      Animated.timing(focusAnim, {
+        toValue: 1, 
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.spring(sizeAnim, {
+        toValue: 0.5,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [focusAnim, sizeAnim]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -67,47 +102,10 @@ export default function AccommodationTest() {
     }
 
     return () => clearInterval(timer);
-  }, [phase, timeLeft, cycle]);
+  }, [phase, timeLeft, cycle, startFarPhase, startNearPhase, saveResults]);
 
   const startTest = () => {
     startNearPhase();
-  };
-
-  const startNearPhase = () => {
-    setPhase('near');
-    setTimeLeft(10);
-    
-    // Animate to "Near" state: Large, Sharp
-    Animated.parallel([
-      Animated.timing(focusAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(sizeAnim, {
-        toValue: 1.5,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const startFarPhase = () => {
-    setPhase('far');
-    setTimeLeft(10);
-
-    // Animate to "Far" state: Small, maybe slightly blurry initially then sharp? 
-    // For this simulation, we'll just make it small to simulate distance.
-    Animated.parallel([
-      Animated.timing(focusAnim, {
-        toValue: 1, 
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(sizeAnim, {
-        toValue: 0.5,
-        useNativeDriver: true,
-      }),
-    ]).start();
   };
 
   const resetTest = () => {
@@ -265,7 +263,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    backgroundColor: '#FFFFFF', // Should utilize theme.colors.card via logic if inside component, but fixed for simplicity here as example
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 30,
     alignItems: 'center',

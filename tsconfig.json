@@ -26,14 +26,16 @@
       "node",
       "react",
       "react-native",
-      "expo"
+      "expo",
+      "react-native-vision-camera"
     ]
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
   ],
   "extends": "expo/tsconfig.base"
 }

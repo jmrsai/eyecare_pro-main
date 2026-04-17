@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Zap, ArrowLeft, Play, Pause, CheckCircle } from 'lucide-react-native';
@@ -47,9 +47,9 @@ export default function QuickBreakExercise() {
   const [isActive, setIsActive] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   
-  const blinkAnim = new Animated.Value(1);
-  const trackAnim = new Animated.Value(0);
-  const focusAnim = new Animated.Value(0);
+  const blinkAnim = useRef(new Animated.Value(1)).current;
+  const trackAnim = useRef(new Animated.Value(0)).current;
+  const focusAnim = useRef(new Animated.Value(0)).current;
 
   const currentExercise = QUICK_EXERCISES[currentExerciseIndex];
   const totalDuration = QUICK_EXERCISES.reduce((sum, ex) => sum + ex.duration, 0);

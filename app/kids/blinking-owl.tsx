@@ -4,10 +4,9 @@ import { MotiView, AnimatePresence } from 'moti';
 import { ArrowLeft, Star, Volume2, VolumeX } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const LEVELS = [
   { id: 1, name: 'Slow & Steady', interval: 4000, duration: 30000, blinks: 10 },
@@ -25,12 +24,12 @@ export default function BlinkingOwlScreen() {
   const [stars, setStars] = useState(0);
 
   // Sound effects placeholders
-  const playSound = async (type: 'blink' | 'win' | 'start') => {
+  const playSound = useCallback(async (type: 'blink' | 'win' | 'start') => {
     if (!soundEnabled) return;
     // In a real app, we would load actual mp3 files
     // const { sound } = await Audio.Sound.createAsync(require(`../../assets/sounds/${type}.mp3`));
     // await sound.playAsync();
-  };
+  }, [soundEnabled]);
 
   const startLevel = () => {
     setGameState('countdown');
@@ -48,7 +47,7 @@ export default function BlinkingOwlScreen() {
         playSound('start');
       }
     }
-  }, [gameState, countdown]);
+  }, [gameState, countdown, playSound]);
 
   useEffect(() => {
     if (gameState === 'playing') {
@@ -78,7 +77,7 @@ export default function BlinkingOwlScreen() {
         clearTimeout(levelTimer);
       };
     }
-  }, [gameState, level]);
+  }, [gameState, level, playSound]);
 
   const updateStats = async (earnedStars: number) => {
     try {

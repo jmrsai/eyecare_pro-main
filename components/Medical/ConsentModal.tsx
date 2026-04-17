@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
-import { ShieldCheck, AlertTriangle, ArrowRight, Shield } from 'lucide-react-native';
+import { ShieldCheck, AlertTriangle, ArrowRight } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getSecureItem, saveSecureItem } from '../../utils/security';
 import { logSecurityEvent } from '../../utils/logger';
@@ -12,13 +12,9 @@ export default function ConsentModal() {
   const { theme } = useTheme();
   const [visible, setVisible] = useState(false);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
-  const fadeAnim = useState(new Animated.Value(0))[0];
+  const [fadeAnim] = useState(new Animated.Value(0));
 
-  useEffect(() => {
-    checkConsent();
-  }, []);
-
-  const checkConsent = async () => {
+  const checkConsent = useCallback(async () => {
     const accepted = await getSecureItem(CONSENT_KEY);
     if (!accepted) {
       setVisible(true);
@@ -28,7 +24,11 @@ export default function ConsentModal() {
         useNativeDriver: true,
       }).start();
     }
-  };
+  }, [fadeAnim]);
+
+  useEffect(() => {
+    checkConsent();
+  }, [checkConsent]);
 
   const handleAccept = async () => {
     await saveSecureItem(CONSENT_KEY, 'true');

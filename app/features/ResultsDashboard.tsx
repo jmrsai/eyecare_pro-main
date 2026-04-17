@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator } from 'react-native';
-import { FileDown, Calendar, ArrowRight, ClipboardCheck } from 'lucide-react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { FileDown, Calendar, ClipboardCheck } from 'lucide-react-native';
 import { generatePdfReport } from '../../utils/pdfGenerator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MotiView } from 'moti';
@@ -19,16 +19,13 @@ interface TestResult {
 
 export default function ResultsDashboard() {
   const { user } = useAuth();
-  const { COLORS, SIZES, FONTS, SHADOWS } = appTheme;
+  const { COLORS } = appTheme;
   const [results, setResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadResults();
-  }, [user]);
-
-  const loadResults = async () => {
+  const loadResults = useCallback(async () => {
     try {
+      setLoading(true);
       let combinedResults: TestResult[] = [];
 
       // 1. Load from AsyncStorage (Local cache/Guest results)
@@ -61,7 +58,11 @@ export default function ResultsDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadResults();
+  }, [loadResults]);
 
   const handleShareReport = () => {
     generatePdfReport(results);

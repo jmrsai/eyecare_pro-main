@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, ChevronRight, Check, AlertCircle, Eye, Target, ClipboardList, Activity } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, AlertCircle, Eye, Target, ClipboardList, Activity } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { MotiView, AnimatePresence } from 'moti';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useAuth } from '../../context/AuthContext';
-import { saveTestResult } from '../../lib/firebase';
 
 const STEPS = [
   { id: 'symptoms', title: 'Symptoms', icon: ClipboardList },
@@ -25,12 +22,10 @@ const SYMPTOMS = [
 
 export default function QuickAssessment() {
   const { theme } = useTheme();
-  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [acuityScore, setAcuityScore] = useState(0);
   const [astigmatismLines, setAstigmatismLines] = useState<number[]>([]);
-  const [loading, setLoading] = useState(false);
 
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
@@ -176,6 +171,8 @@ export default function QuickAssessment() {
             </TouchableOpacity>
           </ScrollView>
         );
+      default:
+        return null;
     }
   };
 

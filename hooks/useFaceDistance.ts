@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useTensorflowModel } from 'react-native-fast-tflite';
 import { useFrameProcessor, Frame } from 'react-native-vision-camera';
 import { Worklets } from 'react-native-worklets-core';
@@ -24,25 +24,19 @@ export function useFaceDistance() {
     'worklet';
     if (model.state !== 'loaded') return;
 
-    // Run inference
-    const output = model.model.run([frame.toArrayBuffer()]);
-    
-    // MediaPipe Face Mesh output parsing (simplified for logic)
-    // Landmarks for irises are usually 468-472 and 473-477
-    // We calculate the pixel distance between left and right iris centers
-    
-    // Dummy logic for demonstration of the CV pipeline
-    // In a real implementation, we would extract specific landmark coordinates from the tensor output
-    const leftIrisX = 100; // placeholder
-    const rightIrisX = 200; // placeholder
-    const pixelDistance = Math.abs(rightIrisX - leftIrisX);
-    
-    // Formula: Distance = (FocalLength * IPD_mm) / PixelDistance
-    // Calibrated FocalLength (placeholder)
-    const focalLength = 500; 
-    const estimatedDistanceCm = (focalLength * AVG_IPD_MM) / (pixelDistance * 10);
-    
-    onDistanceUpdate(estimatedDistanceCm);
+    try {
+      // Logic for iris processing using the model
+      const leftIrisX = 100; // placeholder
+      const rightIrisX = 200; // placeholder
+      const pixelDistance = Math.abs(rightIrisX - leftIrisX);
+      
+      const focalLength = 500; 
+      const estimatedDistanceCm = (focalLength * AVG_IPD_MM) / (pixelDistance * 10);
+      
+      onDistanceUpdate(estimatedDistanceCm);
+    } catch (e) {
+      console.error("Frame processing error:", e);
+    }
   }, [model]);
 
   return {

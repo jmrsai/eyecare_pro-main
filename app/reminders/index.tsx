@@ -128,7 +128,7 @@ export default function RemindersScreen() {
       setNewTitle('');
       setNewTime(new Date());
       setShowAddModal(false);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to schedule notification.');
     }
   };

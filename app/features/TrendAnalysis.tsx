@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
 import { TrendingUp, Award, Calendar, ChevronLeft, ArrowUpRight, ArrowDownRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import theme from '../../styles/theme';
 import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
@@ -16,7 +15,6 @@ interface TestResult {
 }
 
 export default function TrendAnalysis() {
-  const { lightTheme, typography, spacing } = theme;
   const [history, setHistory] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(true);
 

@@ -2,12 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { ArrowLeft, Info, HelpCircle } from 'lucide-react-native';
-import { useTheme } from '../../../contexts/ThemeContext';
 import { DichopticCanvas } from '../../../components/training/DichopticCanvas';
 
 export default function DichopticTraining() {
-  const { theme } = useTheme();
-
   return (
     <View style={[styles.container, { backgroundColor: '#000' }]}>
       <Stack.Screen options={{ headerShown: false }} />

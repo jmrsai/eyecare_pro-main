@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { ArrowLeft, Shield, Scale, AlertTriangle, FileText } from 'lucide-react-native';
+import { ArrowLeft, Shield, Scale, AlertTriangle, Info } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -124,9 +124,6 @@ export default function LegalScreen() {
     </SafeAreaView>
   );
 }
-
-// Re-importing Info from lucide-react-native for the infoBox
-import { Info } from 'lucide-react-native';
 
 const styles = StyleSheet.create({
   container: {

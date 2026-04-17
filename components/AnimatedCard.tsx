@@ -5,8 +5,6 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-  interpolate,
-  Extrapolate,
 } from 'react-native-reanimated';
 
 interface AnimatedCardProps {
@@ -20,14 +18,15 @@ export function AnimatedCard({ children, delay = 0, style }: AnimatedCardProps) 
   const translateY = useSharedValue(50);
 
   useEffect(() => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       opacity.value = withTiming(1, { duration: 500 });
       translateY.value = withSpring(0, {
         damping: 15,
         stiffness: 100,
       });
     }, delay);
-  }, [delay]);
+    return () => clearTimeout(timer);
+  }, [delay, opacity, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

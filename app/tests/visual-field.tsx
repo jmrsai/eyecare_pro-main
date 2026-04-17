@@ -1,509 +1,244 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, ArrowLeft, RotateCcw, Target } from 'lucide-react-native';
+import { Target, ArrowLeft, RotateCcw, CheckCircle2, Shield, Eye, Scan, Zap, Shapes, Circle as CircleIcon, Square, Triangle } from 'lucide-react-native';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MotiView, AnimatePresence } from 'moti';
+import { Camera as VisionCamera, useCameraDevice } from 'react-native-vision-camera';
+import { DistanceMonitor } from '../../components/camera/DistanceMonitor';
+import { useFaceDistance } from '../../hooks/useFaceDistance';
+import { useEyeStore } from '../../store/useEyeStore';
 import { useAuth } from '../../context/AuthContext';
 import { saveTestResult } from '../../lib/firebase';
 
+
 const { width, height } = Dimensions.get('window');
 
-interface TestPoint {
-  x: number;
-  y: number;
-  detected: boolean;
-  shown: boolean;
-}
+const STIMULUS_COLORS = [
+  { name: 'Red', color: '#EF4444' },
+  { name: 'Blue', color: '#3B82F6' },
+  { name: 'Green', color: '#10B981' },
+  { name: 'Yellow', color: '#F59E0B' },
+  { name: 'Purple', color: '#8B5CF6' },
+  { name: 'Orange', color: '#F97316' },
+];
+
+const STIMULUS_SHAPES = [
+  { name: 'Circle', icon: CircleIcon },
+  { name: 'Square', icon: Square },
+  { name: 'Triangle', icon: Triangle },
+];
 
 export default function VisualFieldTest() {
   const { user } = useAuth();
+  const { addResult, updateDailyProgress } = useEyeStore();
+
+  const [step, setStep] = useState<'instructions' | 'test' | 'results'>('instructions');
   const [currentEye, setCurrentEye] = useState<'right' | 'left'>('right');
-  const [testPoints, setTestPoints] = useState<TestPoint[]>([]);
-  const [currentPointIndex, setCurrentPointIndex] = useState(0);
-  const [showStimulus, setShowStimulus] = useState(false);
-  const [testComplete, setTestComplete] = useState(false);
-  const [results, setResults] = useState<{ [key: string]: number }>({});
-  const [isFixating, setIsFixating] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [stimuli, setStimuli] = useState<any[]>([]);
+  const [activeStimulus, setActiveStimulus] = useState<any | null>(null);
+  const [showMCQ, setShowMCQ] = useState(false);
+  const [score, setScore] = useState(0);
 
-  useEffect(() => {
-    generateTestPoints();
-  }, [currentEye]);
+  const device = useCameraDevice('front');
+  const { isDistanceCorrect, frameOutput } = useFaceDistance();
 
-  const generateTestPoints = () => {
-    const points: TestPoint[] = [];
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radius = Math.min(width, height) * 0.3;
+  const totalPoints = 15;
 
-    // Generate 24 points in a circular pattern around the center
-    for (let i = 0; i < 24; i++) {
-      const angle = (i * 15) * (Math.PI / 180); // 15-degree intervals
-      const distance = radius * (0.5 + Math.random() * 0.5); // Vary distance
-      
-      points.push({
-        x: centerX + Math.cos(angle) * distance,
-        y: centerY + Math.sin(angle) * distance,
-        detected: false,
-        shown: false,
+  const startTest = () => {
+    const newStimuli = [];
+    for (let i = 0; i < totalPoints; i++) {
+      const color = STIMULUS_COLORS[Math.floor(Math.random() * STIMULUS_COLORS.length)];
+      const shape = STIMULUS_SHAPES[Math.floor(Math.random() * STIMULUS_SHAPES.length)];
+
+      // Random peripheral position
+      const side = Math.random() > 0.5 ? 'left' : 'right';
+      const vert = Math.random() > 0.5 ? 'top' : 'bottom';
+
+      newStimuli.push({
+        id: i,
+        color,
+        shape,
+        pos: {
+          x: side === 'left' ? Math.random() * 100 + 20 : width - Math.random() * 100 - 60,
+          y: vert === 'top' ? Math.random() * 100 + 100 : height - Math.random() * 100 - 300,
+        },
+        duration: Math.max(200, 600 - (i * 20)) // Get faster as it goes
       });
     }
-
-    setTestPoints(points);
-    setCurrentPointIndex(0);
+    setStimuli(newStimuli);
+    setStep('test');
+    runCycle(0, newStimuli);
   };
 
-  const showNextStimulus = () => {
-    if (currentPointIndex >= testPoints.length) {
-      completeCurrentEye();
+  const runCycle = (idx: number, stims: any[]) => {
+    if (idx >= totalPoints) {
+      finishTest();
       return;
     }
 
-    const updatedPoints = [...testPoints];
-    updatedPoints[currentPointIndex].shown = true;
-    setTestPoints(updatedPoints);
-    setShowStimulus(true);
+    setCurrentIndex(idx);
+    setActiveStimulus(stims[idx]);
+    setShowMCQ(false);
 
-    // Hide stimulus after 1 second
     setTimeout(() => {
-      setShowStimulus(false);
+      setActiveStimulus(null);
       setTimeout(() => {
-        setCurrentPointIndex(currentPointIndex + 1);
-      }, 500);
-    }, 1000);
+        setShowMCQ(true);
+      }, 400);
+    }, stims[idx].duration);
   };
 
-  const handleStimulusDetected = () => {
-    if (showStimulus && currentPointIndex < testPoints.length) {
-      const updatedPoints = [...testPoints];
-      updatedPoints[currentPointIndex].detected = true;
-      setTestPoints(updatedPoints);
+  const handleAnswer = (selectedColor: string) => {
+    if (selectedColor === stimuli[currentIndex].color.name) {
+      setScore(s => s + 1);
     }
-  };
 
-  const completeCurrentEye = async () => {
-    const detectedCount = testPoints.filter(point => point.detected).length;
-    const accuracy = (detectedCount / testPoints.length) * 100;
-    
-    const eyeResults = { ...results, [currentEye]: accuracy };
-    setResults(eyeResults);
-
-    if (currentEye === 'right') {
-      setCurrentEye('left');
-      generateTestPoints();
+    if (currentIndex < totalPoints - 1) {
+      setTimeout(() => runCycle(currentIndex + 1, stimuli), 400);
     } else {
-      await saveTestResults(eyeResults);
-      setTestComplete(true);
+      finishTest();
     }
   };
 
-  const saveTestResults = async (testResults: { [key: string]: number }) => {
-    try {
-      const avgScore = Math.round((testResults.right + testResults.left) / 2);
-      const result = {
-        testType: 'Visual Field',
-        date: new Date().toISOString().split('T')[0],
-        score: avgScore,
-        status: getStatus(avgScore),
-        details: `Right eye: ${testResults.right.toFixed(1)}%, Left eye: ${testResults.left.toFixed(1)}%`,
-      };
+  const finishTest = async () => {
+    const finalScore = Math.round((score / totalPoints) * 100);
+    setStep('results');
 
-      if (user?.uid) {
-        await saveTestResult(user.uid, result);
-      }
+    await addResult({
+      type: 'Visual Field',
+      date: new Date().toISOString(),
+      score: finalScore,
+      status: finalScore >= 80 ? 'normal' : finalScore >= 60 ? 'attention' : 'concern',
+      details: `Peripheral Awareness: ${finalScore}% accuracy`
+    }, user?.uid);
 
-      const existingResults = await AsyncStorage.getItem('testResults');
-      const results = existingResults ? JSON.parse(existingResults) : [];
-      results.unshift({ id: Date.now().toString(), ...result });
-      
-      await AsyncStorage.setItem('testResults', JSON.stringify(results));
-    } catch (error) {
-      console.error('Error saving test results:', error);
-    }
+    updateDailyProgress(25);
   };
 
-  const getStatus = (score: number): 'normal' | 'attention' | 'concern' => {
-    if (score >= 85) return 'normal';
-    if (score >= 70) return 'attention';
-    return 'concern';
-  };
-
-  const resetTest = () => {
-    setCurrentEye('right');
-    setCurrentPointIndex(0);
-    setTestComplete(false);
-    setResults({});
-    generateTestPoints();
-  };
-
-  if (testComplete) {
-    const avgScore = Math.round((results.right + results.left) / 2);
-    const status = getStatus(avgScore);
-    
+  if (step === 'instructions') {
     return (
       <SafeAreaView style={styles.container}>
         <LinearGradient colors={['#8B5CF6', '#7C3AED']} style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <ArrowLeft size={24} color="#FFFFFF" />
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <ArrowLeft color="#FFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Test Complete</Text>
+          <Text style={styles.headerTitle}>Side Sight</Text>
+          <Text style={styles.headerSubtitle}>Peripheral Field Training</Text>
         </LinearGradient>
 
-        <View style={styles.resultsContainer}>
-          <View style={styles.scoreCard}>
-            <Target size={48} color="#8B5CF6" />
-            <Text style={styles.scoreTitle}>Visual Field Results</Text>
-            <Text style={styles.scoreNumber}>{avgScore}</Text>
-            <Text style={styles.scoreOutOf}>/100</Text>
-            
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '15' }]}>
-              <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
-                {getStatusText(status)}
-              </Text>
-            </View>
-
-            <View style={styles.eyeResults}>
-              <View style={styles.eyeResult}>
-                <Text style={styles.eyeLabel}>Right Eye</Text>
-                <Text style={styles.eyeScore}>{results.right?.toFixed(1)}%</Text>
-              </View>
-              <View style={styles.eyeResult}>
-                <Text style={styles.eyeLabel}>Left Eye</Text>
-                <Text style={styles.eyeScore}>{results.left?.toFixed(1)}%</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.interpretationCard}>
-            <Text style={styles.interpretationTitle}>Clinical Significance</Text>
-            <Text style={styles.interpretationText}>
-              {status === 'normal' 
-                ? 'Your peripheral vision appears normal. Continue regular monitoring.'
-                : status === 'attention'
-                ? 'Some peripheral vision defects detected. Consider professional evaluation for glaucoma screening.'
-                : 'Significant peripheral vision loss detected. Urgent ophthalmologic evaluation recommended for glaucoma assessment.'
-              }
+        <View style={styles.instructionArea}>
+          <MotiView from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} style={styles.infoCard}>
+            <Target size={40} color="#8B5CF6" style={{ marginBottom: 15 }} />
+            <Text style={styles.infoTitle}>How to Play</Text>
+            <Text style={styles.infoDesc}>
+              Keep your eyes fixed on the central white dot. A colored shape will flash in your side vision. Identify its color to score.
             </Text>
-          </View>
-
-          <TouchableOpacity style={styles.retakeButton} onPress={resetTest}>
-            <RotateCcw size={20} color="#8B5CF6" />
-            <Text style={styles.retakeButtonText}>Retake Test</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.doneButton} onPress={() => router.back()}>
-            <Text style={styles.doneButtonText}>Done</Text>
+            <View style={styles.warningBox}>
+              <Scan size={16} color="#F59E0B" />
+              <Text style={styles.warningText}>Maintain 40cm distance for accuracy.</Text>
+            </View>
+          </MotiView>
+          <TouchableOpacity style={styles.startBtn} onPress={startTest}>
+            <Text style={styles.startBtnText}>Start Diagnostic Game</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#8B5CF6', '#7C3AED']} style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Visual Field Test</Text>
-        <Text style={styles.headerSubtitle}>
-          Testing {currentEye} eye • Point {currentPointIndex + 1} of {testPoints.length}
-        </Text>
-      </LinearGradient>
-
-      <View style={styles.testContainer}>
-        <View style={styles.instructionCard}>
-          <Target size={24} color="#8B5CF6" />
-          <Text style={styles.instructionText}>
-            {currentEye === 'right' 
-              ? 'Cover your left eye. Stare at the center dot and tap when you see flashes in your peripheral vision.'
-              : 'Cover your right eye. Stare at the center dot and tap when you see flashes in your peripheral vision.'
-            }
-          </Text>
-        </View>
-
-        <TouchableOpacity 
-          style={styles.testArea}
-          onPress={handleStimulusDetected}
-          activeOpacity={1}
-        >
-          {/* Central fixation point */}
-          <View style={styles.fixationPoint} />
-          
-          {/* Test stimuli */}
-          {testPoints.map((point, index) => (
-            <View
-              key={index}
-              style={[
-                styles.stimulus,
-                {
-                  left: point.x - 10,
-                  top: point.y - 10,
-                  opacity: showStimulus && index === currentPointIndex ? 0.7 : 0,
-                }
-              ]}
-            />
-          ))}
-        </TouchableOpacity>
-
-        <View style={styles.controlsContainer}>
-          <TouchableOpacity 
-            style={styles.nextButton}
-            onPress={showNextStimulus}
-            disabled={showStimulus}
-          >
-            <Text style={styles.nextButtonText}>
-              {currentPointIndex === 0 ? 'Start Test' : 'Next Point'}
-            </Text>
+  if (step === 'results') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.resultsCenter}>
+          <CheckCircle2 size={80} color="#10B981" />
+          <Text style={styles.resultsTitle}>Assessment Saved</Text>
+          <Text style={styles.resultsDesc}>Your peripheral sensitivity score: {Math.round((score / totalPoints) * 100)}%</Text>
+          <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
+            <Text style={styles.doneBtnText}>Return to Dashboard</Text>
           </TouchableOpacity>
         </View>
+      </SafeAreaView>
+    )
+  }
 
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>
-            Progress: {currentPointIndex} / {testPoints.length}
-          </Text>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${(currentPointIndex / testPoints.length) * 100}%` }
-              ]} 
-            />
+  return (
+    <View style={styles.testContainer}>
+      {/* Hardware Accelerated Fixation Layer */}
+      <View style={styles.fixationLayer}>
+        {device && (
+          <View style={styles.camBox}>
+            {/* @ts-ignore - VisionCamera type conflict */}
+            <VisionCamera style={StyleSheet.absoluteFill} device={device} isActive={true} outputs={[frameOutput]} />
+            <DistanceMonitor />
           </View>
-        </View>
+        )}
+        <View style={styles.centerDot} />
       </View>
-    </SafeAreaView>
+
+      {/* Dynamic Stimulus Layer */}
+      <AnimatePresence>
+        {activeStimulus && (
+          <MotiView
+            from={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            style={[styles.stimulus, { left: activeStimulus.pos.x, top: activeStimulus.pos.y, backgroundColor: activeStimulus.color.color }]}
+          >
+            <activeStimulus.shape.icon size={20} color="#FFF" fill="#FFF" />
+          </MotiView>
+        )}
+      </AnimatePresence>
+
+      {/* Clinical MCQ Overaly */}
+      {showMCQ && (
+        <MotiView from={{ translateY: 200 }} animate={{ translateY: 0 }} style={styles.mcqOverlay}>
+          <Text style={styles.mcqPrompt}>Identify the color you saw:</Text>
+          <View style={styles.mcqGrid}>
+            {STIMULUS_COLORS.map((c) => (
+              <TouchableOpacity
+                key={c.name}
+                style={[styles.mcqBtn, { backgroundColor: c.color }]}
+                onPress={() => handleAnswer(c.name)}
+              >
+                <Text style={styles.mcqBtnText}>{c.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </MotiView>
+      )}
+    </View>
   );
 }
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'normal': return '#10B981';
-    case 'attention': return '#F59E0B';
-    case 'concern': return '#EF4444';
-    default: return '#6B7280';
-  }
-};
-
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'normal': return 'Normal';
-    case 'attention': return 'Needs Attention';
-    case 'concern': return 'Concerning';
-    default: return 'Unknown';
-  }
-};
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 30,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  backButton: {
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#DDD6FE',
-    opacity: 0.9,
-  },
-  testContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  instructionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  instructionText: {
-    fontSize: 14,
-    color: '#374151',
-    marginLeft: 12,
-    flex: 1,
-    lineHeight: 20,
-  },
-  testArea: {
-    flex: 1,
-    backgroundColor: '#000000',
-    borderRadius: 12,
-    position: 'relative',
-    marginBottom: 20,
-  },
-  fixationPoint: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-    left: width / 2 - 4,
-    top: '50%',
-    marginTop: -4,
-  },
-  stimulus: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-  },
-  controlsContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  nextButton: {
-    backgroundColor: '#8B5CF6',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  progressContainer: {
-    marginBottom: 20,
-  },
-  progressText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#8B5CF6',
-    borderRadius: 2,
-  },
-  resultsContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  scoreCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  scoreTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  scoreNumber: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#8B5CF6',
-  },
-  scoreOutOf: {
-    fontSize: 24,
-    color: '#6B7280',
-    marginBottom: 16,
-  },
-  statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  eyeResults: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  eyeResult: {
-    alignItems: 'center',
-  },
-  eyeLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  eyeScore: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  interpretationCard: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0EA5E9',
-  },
-  interpretationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0C4A6E',
-    marginBottom: 8,
-  },
-  interpretationText: {
-    fontSize: 14,
-    color: '#0C4A6E',
-    lineHeight: 20,
-  },
-  retakeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#8B5CF6',
-  },
-  retakeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#8B5CF6',
-    marginLeft: 8,
-  },
-  doneButton: {
-    backgroundColor: '#8B5CF6',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  doneButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  header: { padding: 30, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+  backBtn: { marginBottom: 20 },
+  headerTitle: { fontSize: 32, fontWeight: 'bold', color: '#FFF' },
+  headerSubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)' },
+  instructionArea: { flex: 1, padding: 30, justifyContent: 'center' },
+  infoCard: { backgroundColor: '#FFF', padding: 30, borderRadius: 30, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 10, alignItems: 'center' },
+  infoTitle: { fontSize: 24, fontWeight: 'bold', color: '#0F172A', marginBottom: 10 },
+  infoDesc: { textAlign: 'center', fontSize: 14, color: '#64748B', lineHeight: 22 },
+  warningBox: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20, backgroundColor: '#FFFBEB', padding: 10, borderRadius: 10 },
+  warningText: { fontSize: 12, color: '#92400E' },
+  startBtn: { marginTop: 40, backgroundColor: '#8B5CF6', padding: 20, borderRadius: 20, alignItems: 'center' },
+  startBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  testContainer: { flex: 1, backgroundColor: '#000' },
+  fixationLayer: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+  centerDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FFF', elevation: 10 },
+  camBox: { position: 'absolute', top: 60, width: 100, height: 130, borderRadius: 20, overflow: 'hidden' },
+  stimulus: { position: 'absolute', width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  mcqOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFF', padding: 30, borderTopLeftRadius: 40, borderTopRightRadius: 40 },
+  mcqPrompt: { fontSize: 18, fontWeight: 'bold', color: '#0F172A', textAlign: 'center', marginBottom: 25 },
+  mcqGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  mcqBtn: { width: '48%', height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  mcqBtnText: { color: '#FFF', fontWeight: 'bold', textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 2 },
+  resultsCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
+  resultsTitle: { fontSize: 24, fontWeight: 'bold', marginTop: 20 },
+  resultsDesc: { textAlign: 'center', color: '#64748B', marginTop: 10 },
+  doneBtn: { marginTop: 40, padding: 20, backgroundColor: '#8B5CF6', borderRadius: 20, width: '100%', alignItems: 'center' },
+  doneBtnText: { color: '#FFF', fontWeight: 'bold' }
 });

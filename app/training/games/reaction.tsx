@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Vibration } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { ArrowLeft, Zap, Target, Brain, Timer } from 'lucide-react-native';
-import { useTheme } from '../../../contexts/ThemeContext';
-import { MotiView, MotiText, AnimatePresence } from 'moti';
+import { Zap, Target, Brain, Timer } from 'lucide-react-native';
+import { MotiView, AnimatePresence } from 'moti';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
@@ -13,7 +12,6 @@ const INITIAL_SPEED = 1500;
 const GAME_DURATION = 60; // 1 minute session
 
 export default function ReactionGame() {
-  const { theme } = useTheme();
   const [gameState, setGameState] = useState<'ready' | 'playing' | 'summary'>('ready');
   const [target, setTarget] = useState({ x: width / 2 - TARGET_SIZE / 2, y: height / 2 - TARGET_SIZE / 2 });
   const [score, setScore] = useState(0);
@@ -26,34 +24,12 @@ export default function ReactionGame() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    if (gameState === 'playing') {
-      startTimer();
-      spawnTarget();
-    } else {
-      stopGame();
-    }
-    return () => stopGame();
-  }, [gameState]);
-
-  const startTimer = () => {
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          setGameState('summary');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const stopGame = () => {
+  const stopGame = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (gameLoopRef.current) clearTimeout(gameLoopRef.current);
-  };
+  }, []);
 
-  const spawnTarget = () => {
+  const spawnTarget = useCallback(() => {
     if (gameLoopRef.current) clearTimeout(gameLoopRef.current);
     
     setTarget({
@@ -66,7 +42,29 @@ export default function ReactionGame() {
       setMissedTaps(prev => prev + 1);
       spawnTarget();
     }, speed);
-  };
+  }, [speed]);
+
+  const startTimer = useCallback(() => {
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          setGameState('summary');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    if (gameState === 'playing') {
+      startTimer();
+      spawnTarget();
+    } else {
+      stopGame();
+    }
+    return () => stopGame();
+  }, [gameState, startTimer, spawnTarget, stopGame]);
 
   const handlePress = () => {
     const reactionTime = Date.now() - lastAppearance;

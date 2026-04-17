@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions, Animated as RNAnimated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
-import { ArrowLeft, Star, Volume2, VolumeX, Rocket } from 'lucide-react-native';
+import { ArrowLeft, Star, Rocket } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,7 +22,6 @@ export default function CosmicRacerScreen() {
   const [countdown, setCountdown] = useState(3);
   const [score, setScore] = useState(0);
   const [rocketPos, setRocketPos] = useState({ x: width / 2 - 30, y: GAME_HEIGHT / 2 - 30 });
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [stars, setStars] = useState(0);
 
   const startLevel = () => {

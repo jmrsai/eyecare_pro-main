@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
-import { ArrowLeft, Star, Volume2, VolumeX, CheckCircle2, HelpCircle } from 'lucide-react-native';
+import { ArrowLeft, Star, CheckCircle2 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window');
-const GAME_HEIGHT = height * 0.65;
+const { height } = Dimensions.get('window');
 
 const LEVELS = [
   { 
@@ -50,8 +49,6 @@ export default function JungleExplorerScreen() {
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'complete'>('idle');
   const [foundIds, setFoundIds] = useState<string[]>([]);
   const [score, setScore] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [stars, setStars] = useState(0);
 
   const currentLevel = LEVELS[level];
 
@@ -75,7 +72,6 @@ export default function JungleExplorerScreen() {
   const finishLevel = async () => {
     setGameState('complete');
     const earnedStars = 3; // Based on speed/completion
-    setStars(earnedStars);
     
     // Update stats
     try {

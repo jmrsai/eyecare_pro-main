@@ -1,9 +1,8 @@
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Camera as VisionCamera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { MotiView } from 'moti';
-import appTheme from '../../../styles/theme';
 
 interface PostureCheckProps {
   onPostureCorrect: (isCorrect: boolean) => void;
@@ -12,13 +11,13 @@ interface PostureCheckProps {
 const PostureCheck: React.FC<PostureCheckProps> = ({ onPostureCorrect }) => {
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('front');
-  const [feedback, setFeedback] = useState('Positioning camera...');
+  const [feedback] = useState('Positioning camera...');
 
   useEffect(() => {
     if (!hasPermission) {
       requestPermission();
     }
-  }, [hasPermission]);
+  }, [hasPermission, requestPermission]);
 
   if (!hasPermission) {
     return (
@@ -38,12 +37,12 @@ const PostureCheck: React.FC<PostureCheckProps> = ({ onPostureCorrect }) => {
 
   return (
     <View style={styles.container}>
-      <Camera
+      <VisionCamera
         style={StyleSheet.absoluteFill}
         device={device}
         isActive={true}
         // In a real implementation with a native plugin, we would add:
-        // frameProcessor={frameProcessor}
+        // outputs={[frameOutput]}
       />
       
       <MotiView 
@@ -67,8 +66,6 @@ const PostureCheck: React.FC<PostureCheckProps> = ({ onPostureCorrect }) => {
     </View>
   );
 };
-
-import { TouchableOpacity } from 'react-native-gesture-handler';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },

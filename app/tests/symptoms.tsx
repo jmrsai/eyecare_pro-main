@@ -7,7 +7,6 @@ import { useAuth } from '../../context/AuthContext';
 import { saveTestResult } from '../../lib/firebase';
 import { ChevronLeft, Check, AlertCircle, Info } from 'lucide-react-native';
 import { MotiView } from 'moti';
-import appTheme from '../../styles/theme';
 
 const symptomsData = [
   { id: 'blurry_vision', name: 'Blurry Vision' },

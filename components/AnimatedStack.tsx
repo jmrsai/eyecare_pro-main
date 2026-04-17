@@ -18,7 +18,7 @@ const AnimatedStack: React.FC<AnimatedStackProps> = ({ children, style }) => {
 
   useEffect(() => {
     opacity.value = withTiming(1, { duration: 300 });
-  }, []);
+  }, [opacity]);
 
   return (
     <Animated.View style={[{ flex: 1 }, style, animatedStyle]}>

@@ -1,28 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as tf from '@tensorflow/tfjs';
 import * as posenet from '@tensorflow-models/posenet';
 import { MotiView } from 'moti';
-import { ShieldCheck, Info, X, Zap, RefreshCw, AlertCircle, Eye } from 'lucide-react-native';
+import { X, Zap, RefreshCw, AlertCircle, Eye } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-const { width, height } = Dimensions.get('window');
-
-// Calibration constants
-const OPTIMAL_EYE_DISTANCE = 110; // Pixel distance (~50cm on average device)
-const TOLERANCE = 20;
-
 export default function AIFormCoach() {
   const [permission, requestPermission] = useCameraPermissions();
   const [isModelReady, setIsModelReady] = useState(false);
-  const [isTfReady, setIsTfReady] = useState(false);
   const [postureScore, setPostureScore] = useState(100);
   const [statusMessage, setStatusMessage] = useState('Initializing AI...');
-  const [distanceAlert, setDistanceAlert] = useState(false);
-  const [blinkCount, setBlinkCount] = useState(0);
+  const [distanceAlert] = useState(false);
   const [blinkRate, setBlinkRate] = useState(15); // Average bpm
   const [lastBlinkTime, setLastBlinkTime] = useState(Date.now());
   
@@ -33,7 +25,6 @@ export default function AIFormCoach() {
   useEffect(() => {
     (async () => {
       await tf.ready();
-      setIsTfReady(true);
       const net = await posenet.load({
         architecture: 'MobileNetV1',
         outputStride: 16,
@@ -70,7 +61,6 @@ export default function AIFormCoach() {
     // Simulate blink detection
     const now = Date.now();
     if (Math.random() > 0.95) { // 5% chance of blink every second
-      setBlinkCount(prev => prev + 1);
       setLastBlinkTime(now);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }

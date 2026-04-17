@@ -1,434 +1,171 @@
-
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, Palette, Target, Grid3X3, Zap, Clock, BookOpen, AlertTriangle, Settings, ClipboardList, Shield, MapPin } from 'lucide-react-native';
+import { Eye, Palette, Target, Grid3X3, Zap, Clock, BookOpen, AlertTriangle, Settings, ClipboardList, Shield, MapPin, Brain, Activity, TrendingUp } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { StyledTouchableOpacity } from '../../components/StyledTouchableOpacity';
 import ConsentModal from '../../components/Medical/ConsentModal';
+import { MotiView, AnimatePresence } from 'moti';
+import { useEyeStore } from '../../store/useEyeStore';
+
+const { width } = Dimensions.get('window');
 
 const diagnosticTests = [
-  {
-    id: 'visual-acuity',
-    title: 'Visual Acuity Test',
-    description: 'Test your vision sharpness using digital eye charts',
-    icon: Eye,
-    route: '/tests/visual-acuity',
-  },
-  {
-    id: 'symptom-check',
-    title: 'Symptom Checker',
-    description: 'Assess your digital eye strain levels',
-    icon: ClipboardList,
-    route: '/symptoms',
-  },
-  {
-    id: 'accommodation',
-    title: 'Accommodation Test',
-    description: 'Test your ability to switch focus (Near/Far)',
-    icon: Target,
-    route: '/tests/accommodation',
-  },
-  {
-    id: 'color-vision',
-    title: 'Color Vision Test',
-    description: 'Screen for color blindness with Ishihara plates',
-    icon: Palette,
-    route: '/tests/color-vision',
-  },
-  {
-    id: 'astigmatism',
-    title: 'Astigmatism Test',
-    description: 'Check for astigmatism using clock dial patterns',
-    icon: Target,
-    route: '/tests/astigmatism',
-  },
-  {
-    id: 'amsler-grid',
-    title: 'Amsler Grid Test',
-    description: 'Screen for macular degeneration and central vision issues',
-    icon: Grid3X3,
-    route: '/tests/amsler-grid',
-  },
-  {
-    id: 'contrast-sensitivity',
-    title: 'Contrast Sensitivity',
-    description: 'Measure your ability to distinguish contrast',
-    icon: Zap,
-    route: '/tests/contrast-sensitivity',
-  },
-  {
-    id: 'visual-field',
-    title: 'Visual Field Test',
-    description: 'Screen for peripheral vision and glaucoma risk',
-    icon: Target,
-    route: '/tests/visual-field',
-  },
-  {
-    id: 'pupil-response',
-    title: 'Pupil Response Test',
-    description: 'Experimental neurological screening (camera required)',
-    icon: Eye,
-    route: '/tests/pupil-response',
-  },
-  {
-    id: 'reading-speed',
-    title: 'Reading Speed Test',
-    description: 'Assess reading performance and visual processing',
-    icon: BookOpen,
-    route: '/tests/reading-speed',
-  },
-  {
-    id: 'doctor-finder',
-    title: 'Find a Specialist',
-    description: 'Locate ophthalmologists and eye clinics near you',
-    icon: MapPin,
-    route: '/doctor-finder',
-  },
+  { id: 'visual-acuity', title: 'Visual Acuity', description: 'Sharpness screening', icon: Eye, route: '/tests/visual-acuity' },
+  { id: 'color-vision', title: 'Color Vision', description: 'Deficiency screening', icon: Palette, route: '/tests/color-vision' },
+  { id: 'astigmatism', title: 'Astigmatism', description: 'Symmetry check', icon: Target, route: '/tests/astigmatism' },
+  { id: 'amsler-grid', title: 'Amsler Grid', description: 'Macular health', icon: Grid3X3, route: '/tests/amsler-grid' },
+  { id: 'contrast-sensitivity', title: 'Contrast', description: 'Threshold mapping', icon: Zap, route: '/tests/contrast-sensitivity' },
+  { id: 'visual-field', title: 'Side Sight', description: 'Peripheral mapping', icon: Brain, route: '/tests/visual-field' },
+  { id: 'pupil-response', title: 'Pupil Response', description: 'Neurological check', icon: Activity, route: '/tests/pupil-response' },
 ];
 
-export default function TestsScreen() {
+export default function DashboardScreen() {
   const { theme, typography, spacing } = useTheme();
+  const { wellnessScore, aiInsights, dailyProgress } = useEyeStore();
 
   const handleTestPress = (route: string) => {
     router.push(route as any);
   };
 
-  const handleEmergencyPress = () => {
-    router.push('/emergency' as any);
-  };
-
-  const handleSettingsPress = () => {
-    router.push('/settings' as any);
-  };
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    header: {
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xl,
-      borderBottomLeftRadius: 24,
-      borderBottomRightRadius: 24,
-    },
-    headerTop: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: spacing.md,
-    },
-    iconButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-      },
-    headerTitle: {
-      ...typography.h1,
-      color: '#FFFFFF',
-      marginBottom: spacing.xs,
-    },
-    headerSubtitle: {
-      ...typography.body,
-      color: '#BFDBFE',
-      opacity: 0.9,
-    },
-    badgeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    encryptionBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-      gap: 4,
-    },
-    sectionTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 16,
-      marginTop: 10,
-    },
-    trainingCTA: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: 20,
-      borderRadius: 25,
-      marginBottom: 25,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 10,
-      elevation: 5,
-    },
-    trainingCTALeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 15,
-    },
-    trainingIconBox: {
-      width: 48,
-      height: 48,
-      borderRadius: 15,
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    trainingCTATitle: {
-      color: '#FFF',
-      fontSize: 18,
-      fontWeight: 'bold',
-    },
-    trainingCTASubtitle: {
-      color: 'rgba(255,255,255,0.8)',
-      fontSize: 12,
-      marginTop: 2,
-    },
-    trainingBadge: {
-      backgroundColor: '#10B981',
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 10,
-    },
-    trainingBadgeText: {
-      color: '#FFF',
-      fontSize: 10,
-      fontWeight: 'bold',
-    },
-    encryptionText: {
-      fontSize: 8,
-      fontWeight: 'bold',
-      color: '#FFFFFF',
-      letterSpacing: 0.5,
-    },
-    content: {
-      flex: 1,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-    },
-    disclaimerCard: {
-      backgroundColor: '#FF950010',
-      borderRadius: 16,
-      padding: spacing.lg,
-      marginBottom: spacing.lg,
-      borderWidth: 1,
-      borderColor: '#FF950030',
-    },
-    disclaimerHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: spacing.xs,
-      gap: 8,
-    },
-    disclaimerTitle: {
-      ...typography.h3,
-      color: '#FF9500',
-    },
-    disclaimerText: {
-      ...typography.body,
-      color: theme.colors.text,
-      lineHeight: 20,
-      opacity: 0.8,
-    },
-    learnMore: {
-      ...typography.caption,
-      fontWeight: 'bold',
-      marginTop: spacing.sm,
-    },
-    testCard: {
-      backgroundColor: theme.colors.card,
-      borderRadius: 16,
-      marginBottom: spacing.md,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    testCardContent: {
-      flexDirection: 'row',
-      padding: spacing.lg,
-      alignItems: 'center',
-    },
-    iconContainer: {
-      width: 48,
-      height: 48,
-      borderRadius: 12,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: spacing.md,
-    },
-    testInfo: {
-      flex: 1,
-    },
-    testTitle: {
-      ...typography.h3,
-      color: theme.colors.text,
-      marginBottom: spacing.xs,
-    },
-    testDescription: {
-      ...typography.body,
-      color: theme.colors.subtext,
-      lineHeight: 20,
-      marginBottom: spacing.sm,
-    },
-    testMeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    testDuration: {
-      ...typography.caption,
-      color: theme.colors.subtext,
-      marginLeft: spacing.xs,
-    },
-    quickTipsCard: {
-      backgroundColor: theme.colors.info,
-      borderRadius: 12,
-      padding: spacing.md,
-      marginBottom: spacing.lg,
-      borderLeftWidth: 4,
-      borderLeftColor: theme.colors.primary,
-    },
-    quickTipsTitle: {
-      ...typography.h3,
-      color: theme.colors.text,
-      marginBottom: spacing.sm,
-    },
-    quickTipsText: {
-      ...typography.body,
-      color: theme.colors.text,
-      lineHeight: 20,
-    },
-  });
-
   return (
     <SafeAreaView style={styles.container}>
       <ConsentModal />
-      <LinearGradient
-        colors={[theme.colors.primary, '#1D4ED8']}
-        style={styles.header}
-      >
+      <LinearGradient colors={[theme.colors.secondary, theme.colors.primary]} style={styles.header}>
         <View style={styles.headerTop}>
-          <StyledTouchableOpacity style={styles.iconButton} onPress={handleEmergencyPress}>
+          <StyledTouchableOpacity style={styles.iconButton} onPress={() => router.push('/emergency')}>
             <AlertTriangle size={20} color="#FFFFFF" />
           </StyledTouchableOpacity>
-          <StyledTouchableOpacity style={styles.iconButton} onPress={handleSettingsPress}>
+          <StyledTouchableOpacity style={styles.iconButton} onPress={() => router.push('/settings')}>
             <Settings size={20} color="#FFFFFF" />
           </StyledTouchableOpacity>
         </View>
-        <Text style={styles.headerTitle}>EyeCare Pro</Text>
-        <View style={styles.badgeRow}>
-          <Text style={styles.headerSubtitle}>Comprehensive Eye Health Screening</Text>
-          <View style={styles.encryptionBadge}>
-            <Shield size={10} color="#FFFFFF" />
-            <Text style={styles.encryptionText}>E2E ENCRYPTED</Text>
+        <MotiView from={{ opacity: 0, translateY: -20 }} animate={{ opacity: 1, translateY: 0 }}>
+          <Text style={styles.headerTitle}>EyeCare Pro</Text>
+          <View style={styles.badgeRow}>
+            <Text style={styles.headerSubtitle}>Precision Diagnostics</Text>
+            <View style={styles.encryptionBadge}>
+              <Shield size={10} color="#FFFFFF" />
+              <Text style={styles.encryptionText}>AI POWERED</Text>
+            </View>
           </View>
-        </View>
+        </MotiView>
       </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.disclaimerCard}>
-          <View style={styles.disclaimerHeader}>
-            <AlertTriangle size={20} color="#FF9500" />
-            <Text style={styles.disclaimerTitle}>Clinical Disclaimer</Text>
-          </View>
-          <Text style={styles.disclaimerText}>
-            EyeCare Pro is for screening and educational purposes only. It is <Text style={{ fontWeight: 'bold' }}>NOT</Text> a substitute for professional medical diagnosis or treatment.
-          </Text>
-          <TouchableOpacity onPress={() => router.push('/legal' as any)}>
-            <Text style={[styles.learnMore, { color: theme.colors.primary }]}>Read full legal protection details ›</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Daily Training CTA */}
-        <TouchableOpacity 
-          style={[styles.trainingCTA, { backgroundColor: theme.colors.primary }]}
-          onPress={() => router.push('/training')}
+        {/* AI Wellness Hub */}
+        <MotiView
+          from={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', delay: 200 }}
+          style={styles.wellnessCard}
         >
-          <View style={styles.trainingCTALeft}>
-            <View style={styles.trainingIconBox}>
-              <Zap size={24} color="#FFF" fill="#FFF" />
+          <LinearGradient colors={['#FFF', '#F8FAFC']} style={styles.wellnessGradient}>
+            <View style={styles.wellnessHeader}>
+              <View style={styles.scoreCircle}>
+                <Activity size={24} color={theme.colors.primary} />
+                <Text style={styles.scoreText}>{wellnessScore}</Text>
+              </View>
+              <View style={styles.wellnessInfo}>
+                <Text style={styles.wellnessTitle}>Vision Wellness Score</Text>
+                <Text style={styles.wellnessStatus}>{wellnessScore >= 80 ? 'Optimal' : 'Needs Attention'}</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.trainingCTATitle}>Daily Visual Gym</Text>
-              <Text style={styles.trainingCTASubtitle}>Start your 5-min neural routine</Text>
+            
+            <View style={styles.aiBox}>
+              <Brain size={16} color={theme.colors.secondary} />
+              <Text style={styles.aiInsightText}>{aiInsights[0]}</Text>
             </View>
-          </View>
-          <View style={styles.trainingBadge}>
-            <Text style={styles.trainingBadgeText}>READY</Text>
-          </View>
+
+            <View style={styles.progressContainer}>
+                <View style={styles.progressHeader}>
+                    <Text style={styles.progressTitle}>Daily Training</Text>
+                    <Text style={styles.progressPercent}>{dailyProgress}%</Text>
+                </View>
+                <View style={styles.progressBar}>
+                    <MotiView 
+                        animate={{ width: `${dailyProgress}%` }}
+                        transition={{ type: 'timing', duration: 1000 }}
+                        style={[styles.progressFill, { backgroundColor: theme.colors.primary }]} 
+                    />
+                </View>
+            </View>
+          </LinearGradient>
+        </MotiView>
+
+        <Text style={styles.sectionTitle}>Medical Diagnostics</Text>
+        
+        {diagnosticTests.map((test, index) => (
+          <MotiView
+            key={test.id}
+            from={{ opacity: 0, translateX: -20 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'timing', delay: 400 + (index * 100) }}
+          >
+            <TouchableOpacity 
+              style={styles.testCard} 
+              onPress={() => handleTestPress(test.route)}
+            >
+              <View style={[styles.testIconBox, { backgroundColor: `${theme.colors.primary}10` }]}>
+                <test.icon size={24} color={theme.colors.primary} />
+              </View>
+              <View style={styles.testMeta}>
+                <Text style={styles.testTitle}>{test.title}</Text>
+                <Text style={styles.testDesc}>{test.description}</Text>
+              </View>
+              <TrendingUp size={16} color="#E2E8F0" />
+            </TouchableOpacity>
+          </MotiView>
+        ))}
+
+        <TouchableOpacity 
+            style={styles.specialistCard}
+            onPress={() => router.push('/doctor-finder' as any)}
+        >
+            <MapPin size={24} color="#FFF" />
+            <Text style={styles.specialistText}>Find Nearest Eye Specialist</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Diagnostic Tests</Text>
-
-        <StyledTouchableOpacity
-          style={[styles.testCard, { backgroundColor: theme.colors.primary + '10', borderColor: theme.colors.primary, borderWidth: 1 }]}
-          onPress={() => router.push('/tests/quick-assessment' as any)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.testCardContent}>
-            <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary }]}>
-              <Zap size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.testInfo}>
-              <Text style={[styles.testTitle, { color: theme.colors.primary }]}>Quick Assessment</Text>
-              <Text style={styles.testDescription}>3-step early diagnosis flow (1 min)</Text>
-              <View style={styles.testMeta}>
-                <Clock size={14} color={theme.colors.subtext} />
-                <Text style={styles.testDuration}>1 min • AI Assisted</Text>
-              </View>
-            </View>
-          </View>
-        </StyledTouchableOpacity>
-        
-        {diagnosticTests.map((test) => {
-          const IconComponent = test.icon;
-          return (
-            <StyledTouchableOpacity
-              key={test.id}
-              style={styles.testCard}
-              onPress={() => handleTestPress(test.route)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.testCardContent}>
-                <View style={[styles.iconContainer, { backgroundColor: `${theme.colors.primary}15` }]}>
-                  <IconComponent size={24} color={theme.colors.primary} />
-                </View>
-                <View style={styles.testInfo}>
-                  <Text style={styles.testTitle}>{test.title}</Text>
-                  <Text style={styles.testDescription}>{test.description}</Text>
-                  <View style={styles.testMeta}>
-                    <Clock size={14} color={theme.colors.subtext} />
-                    <Text style={styles.testDuration}>3-5 min</Text>
-                  </View>
-                </View>
-              </View>
-            </StyledTouchableOpacity>
-          );
-        })}
-
-        <View style={styles.quickTipsCard}>
-          <Text style={styles.quickTipsTitle}>💡 Quick Tips</Text>
-          <Text style={styles.quickTipsText}>
-            • Ensure good lighting when taking tests{'\n'}
-            • Hold your device at arm&apos;s length{'\n'}
-            • Take breaks between tests{'\n'}
-            • Test each eye separately when instructed
-          </Text>
-        </View>
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  header: { padding: 30, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
+  iconButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 32, fontWeight: 'bold', color: '#FFF' },
+  headerSubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)' },
+  badgeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  encryptionBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, gap: 5 },
+  encryptionText: { fontSize: 10, color: '#FFF', fontWeight: 'bold' },
+  content: { flex: 1, padding: 20 },
+  wellnessCard: { borderRadius: 30, overflow: 'hidden', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, marginBottom: 30 },
+  wellnessGradient: { padding: 25 },
+  wellnessHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  scoreCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  scoreText: { fontSize: 24, fontWeight: 'bold', color: '#0F172A' },
+  wellnessInfo: { flex: 1 },
+  wellnessTitle: { fontSize: 18, fontWeight: 'bold', color: '#0F172A' },
+  wellnessStatus: { fontSize: 14, color: '#10B981', fontWeight: 'bold' },
+  aiBox: { flexDirection: 'row', backgroundColor: '#F1F5F9', padding: 15, borderRadius: 15, gap: 10, alignItems: 'center', marginBottom: 20 },
+  aiInsightText: { flex: 1, fontSize: 12, color: '#475569', lineHeight: 18 },
+  progressContainer: { marginTop: 10 },
+  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  progressTitle: { fontSize: 12, fontWeight: 'bold', color: '#64748B' },
+  progressPercent: { fontSize: 12, fontWeight: 'bold', color: '#0F172A' },
+  progressBar: { height: 8, backgroundColor: '#E2E8F0', borderRadius: 4, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 4 },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#0F172A', marginBottom: 20 },
+  testCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 20, marginBottom: 15, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 5 },
+  testIconBox: { width: 50, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  testMeta: { flex: 1 },
+  testTitle: { fontSize: 16, fontWeight: 'bold', color: '#0F172A' },
+  testDesc: { fontSize: 12, color: '#64748B' },
+  specialistCard: { backgroundColor: '#0F172A', padding: 20, borderRadius: 25, flexDirection: 'row', alignItems: 'center', gap: 15, marginTop: 10 },
+  specialistText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
+});

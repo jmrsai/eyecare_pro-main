@@ -24,7 +24,7 @@ export function LoadingSpinner({ size = 40, color = '#3B82F6' }: LoadingSpinnerP
       }),
       -1
     );
-  }, []);
+  }, [rotation]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

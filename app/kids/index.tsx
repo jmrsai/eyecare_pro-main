@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, Trophy, Heart, Gamepad2, ArrowLeft, Settings } from 'lucide-react-native';
@@ -27,10 +27,27 @@ export default function KidsHomeScreen() {
   const [childName, setChildName] = useState('Little Explorer');
   const [bounceAnim] = useState(new Animated.Value(1));
 
+  const startBounceAnimation = useCallback(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [bounceAnim]);
+
   useEffect(() => {
     loadKidsStats();
     startBounceAnimation();
-  }, []);
+  }, [startBounceAnimation]);
 
   const loadKidsStats = async () => {
     try {
@@ -46,23 +63,6 @@ export default function KidsHomeScreen() {
     } catch (error) {
       console.error('Error loading kids stats:', error);
     }
-  };
-
-  const startBounceAnimation = () => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(bounceAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(bounceAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
   };
 
   const canPlayMore = () => {

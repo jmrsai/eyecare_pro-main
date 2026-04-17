@@ -1,27 +1,44 @@
-
-import { useState, useEffect } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { useState, useEffect } from 'react';
+import { Alert } from 'react-native';
 
 export const useBiometricAuth = () => {
-  const [isSupported, setIsSupported] = useState(false);
+  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     (async () => {
       const compatible = await LocalAuthentication.hasHardwareAsync();
-      setIsSupported(compatible);
+      setIsBiometricSupported(compatible);
     })();
   }, []);
 
   const authenticate = async () => {
-    const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Authenticate to view clinical results',
-      fallbackLabel: 'Enter Passcode', // iOS only
-    });
+    try {
+      const hasBiometrics = await LocalAuthentication.isEnrolledAsync();
+      if (!hasBiometrics) {
+        return true; // Fallback if no biometrics enrolled
+      }
 
-    setIsAuthenticated(result.success);
-    return result.success;
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Authenticate to access EyeCare Pro',
+        fallbackLabel: 'Use Passcode',
+      });
+
+      if (result.success) {
+        setIsAuthenticated(true);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Biometric error:', error);
+      return false;
+    }
   };
 
-  return { isSupported, isAuthenticated, authenticate };
+  return {
+    isBiometricSupported,
+    isAuthenticated,
+    authenticate
+  };
 };

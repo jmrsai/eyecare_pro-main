@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, StatusBar, ViewStyle, TextStyle, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, Pressable, StatusBar, ScrollView, RefreshControl } from 'react-native';
 import { MotiView } from 'moti';
-import { ChevronRight, Eye, ClipboardList, MessageSquare, FileSearch, TrendingUp, Activity, Bell, Pill } from 'lucide-react-native';
+import { ChevronRight, Eye, ClipboardList, MessageSquare, TrendingUp, Activity, Bell, Pill } from 'lucide-react-native';
 import appTheme from '../../styles/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -14,7 +14,7 @@ const FEATURES = [
 ];
 
 export default function Home() {
-  const { COLORS, SIZES, FONTS, SHADOWS } = appTheme;
+  const { COLORS } = appTheme;
   const [latestScore, setLatestScore] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 

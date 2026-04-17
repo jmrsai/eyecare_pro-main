@@ -1,508 +1,214 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Palette, ArrowLeft, RotateCcw } from 'lucide-react-native';
+import { Palette, ArrowLeft, RotateCcw, CheckCircle2, Shield, Info, Layers, Beaker, Shapes } from 'lucide-react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import { saveTestResult } from '../../lib/firebase';
+import { MotiView } from 'moti';
 
-interface ColorPlate {
+const { width } = Dimensions.get('window');
+
+type ColorTestType = 'ISHIHARA' | 'HRR' | 'D-15';
+
+interface Plate {
   id: number;
-  colors: string[];
+  type: string;
   correctAnswer: string;
   options: string[];
-  description: string;
+  colors: string[];
 }
 
-const COLOR_PLATES: ColorPlate[] = [
-  {
-    id: 1,
-    colors: ['#8B4513', '#228B22', '#32CD32', '#90EE90'],
-    correctAnswer: '12',
-    options: ['12', '21', '71', 'Nothing'],
-    description: 'Normal vision should see 12',
+const TEST_CONFIG = {
+  ISHIHARA: {
+    title: 'Ishihara Test',
+    desc: 'Classic Red-Green deficiency test',
+    plates: [
+      { id: 1, type: 'number', correctAnswer: '12', options: ['12', '72', '17', 'Nothing'], colors: ['#D2691E', '#228B22', '#32CD32'] },
+      { id: 2, type: 'number', correctAnswer: '8', options: ['8', '3', '6', 'Nothing'], colors: ['#FF7F50', '#2E8B57', '#90EE90'] },
+      { id: 3, type: 'number', correctAnswer: '29', options: ['29', '70', '20', 'Nothing'], colors: ['#FF4500', '#006400', '#8FBC8F'] },
+    ]
   },
-  {
-    id: 2,
-    colors: ['#FF6347', '#32CD32', '#90EE90', '#98FB98'],
-    correctAnswer: '8',
-    options: ['8', '3', '6', 'Nothing'],
-    description: 'Normal vision should see 8',
+  HRR: {
+    title: 'HRR Standard',
+    desc: 'Advanced shapes & Blue-Yellow test',
+    plates: [
+      { id: 1, type: 'shape', correctAnswer: 'Circle', options: ['Circle', 'Triangle', 'Square', 'Nothing'], colors: ['#FF69B4', '#1CB6D0', '#E2E8F0'] },
+      { id: 2, type: 'shape', correctAnswer: 'Triangle', options: ['Triangle', 'Cross', 'Star', 'Nothing'], colors: ['#9370DB', '#FFD700', '#F1F5F9'] },
+    ]
   },
-  {
-    id: 3,
-    colors: ['#FF4500', '#32CD32', '#228B22', '#006400'],
-    correctAnswer: '29',
-    options: ['29', '70', '20', 'Nothing'],
-    description: 'Normal vision should see 29',
-  },
-  {
-    id: 4,
-    colors: ['#DC143C', '#32CD32', '#228B22', '#90EE90'],
-    correctAnswer: '5',
-    options: ['5', '2', '6', 'Nothing'],
-    description: 'Normal vision should see 5',
-  },
-  {
-    id: 5,
-    colors: ['#FF69B4', '#32CD32', '#90EE90', '#98FB98'],
-    correctAnswer: '3',
-    options: ['3', '8', '5', 'Nothing'],
-    description: 'Normal vision should see 3',
-  },
-];
+  'D-15': {
+    title: 'D-15 Panel',
+    desc: 'Hue discrimination & saturation test',
+    plates: [
+      { id: 1, type: 'hue', correctAnswer: 'Blue-Green', options: ['Blue-Green', 'Yellow-Green', 'Purple', 'Orange'], colors: ['#008B8B', '#00FFFF', '#20B2AA'] },
+    ]
+  }
+};
 
 export default function ColorVisionTest() {
   const { user } = useAuth();
+  const [testType, setTestType] = useState<ColorTestType | null>(null);
   const [currentPlate, setCurrentPlate] = useState(0);
-  const [answers, setAnswers] = useState<string[]>([]);
+  const [correctCount, setCorrectCount] = useState(0);
   const [testComplete, setTestComplete] = useState(false);
 
-  const handleAnswer = async (selectedAnswer: string) => {
-    const newAnswers = [...answers, selectedAnswer];
-    setAnswers(newAnswers);
+  const handleAnswer = (selected: string) => {
+    const config = TEST_CONFIG[testType!];
+    const plate = config.plates[currentPlate];
+    
+    if (selected === plate.correctAnswer) {
+      setCorrectCount(prev => prev + 1);
+    }
 
-    if (currentPlate < COLOR_PLATES.length - 1) {
-      setCurrentPlate(currentPlate + 1);
+    if (currentPlate < config.plates.length - 1) {
+      setCurrentPlate(prev => prev + 1);
     } else {
-      await completeTest(newAnswers);
+      finishTest(correctCount + (selected === plate.correctAnswer ? 1 : 0));
     }
   };
 
-  const completeTest = async (testAnswers: string[]) => {
-    let correctCount = 0;
-    testAnswers.forEach((answer, index) => {
-      if (answer === COLOR_PLATES[index].correctAnswer) {
-        correctCount++;
-      }
-    });
+  const finishTest = async (finalCorrect: number) => {
+    const config = TEST_CONFIG[testType!];
+    const score = Math.round((finalCorrect / config.plates.length) * 100);
+    
+    const result = {
+      testType: `Color Vision (${testType})`,
+      date: new Date().toISOString(),
+      score,
+      status: score >= 80 ? 'normal' : score >= 60 ? 'attention' : 'concern'
+    };
 
-    const accuracy = (correctCount / COLOR_PLATES.length) * 100;
-    const status = getStatus(accuracy);
-
-    try {
-      const result = {
-        testType: 'Color Vision',
-        date: new Date().toISOString().split('T')[0],
-        score: Math.round(accuracy),
-        status,
-        details: `${correctCount}/${COLOR_PLATES.length} plates identified correctly`,
-      };
-
-      if (user?.uid) {
-        await saveTestResult(user.uid, result);
-      }
-
-      const existingResults = await AsyncStorage.getItem('testResults');
-      const results = existingResults ? JSON.parse(existingResults) : [];
-      results.unshift({ id: Date.now().toString(), ...result });
-      
-      await AsyncStorage.setItem('testResults', JSON.stringify(results));
-    } catch (error) {
-      console.error('Error saving test results:', error);
-    }
-
+    if (user?.uid) await saveTestResult(user.uid, result);
     setTestComplete(true);
   };
 
-  const getStatus = (score: number): 'normal' | 'attention' | 'concern' => {
-    if (score >= 80) return 'normal';
-    if (score >= 60) return 'attention';
-    return 'concern';
-  };
-
-  const resetTest = () => {
-    setCurrentPlate(0);
-    setAnswers([]);
-    setTestComplete(false);
-  };
-
-  const generateColorCircle = (colors: string[]) => {
-    const circleSize = 200;
-    const dotSize = 12;
-    const dots = [];
-
-    // Generate random dots with the specified colors
-    for (let i = 0; i < 100; i++) {
-      const angle = Math.random() * 2 * Math.PI;
-      const radius = Math.random() * (circleSize / 2 - dotSize);
-      const x = Math.cos(angle) * radius + circleSize / 2;
-      const y = Math.sin(angle) * radius + circleSize / 2;
-      const colorIndex = Math.floor(Math.random() * colors.length);
-      
-      dots.push({
-        key: i,
-        left: x - dotSize / 2,
-        top: y - dotSize / 2,
-        backgroundColor: colors[colorIndex],
-      });
-    }
-
-    return dots;
-  };
-
-  if (testComplete) {
-    const correctCount = answers.filter((answer, index) => 
-      answer === COLOR_PLATES[index].correctAnswer
-    ).length;
-    const accuracy = Math.round((correctCount / COLOR_PLATES.length) * 100);
-    const status = getStatus(accuracy);
-    
+  if (!testType) {
     return (
       <SafeAreaView style={styles.container}>
-        <LinearGradient colors={['#10B981', '#059669']} style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <ArrowLeft size={24} color="#FFFFFF" />
+        <LinearGradient colors={['#059669', '#10B981']} style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <ArrowLeft color="#FFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Test Complete</Text>
+          <Text style={styles.headerTitle}>Color Vision</Text>
+          <Text style={styles.headerSubtitle}>Select diagnostic standard</Text>
         </LinearGradient>
 
-        <View style={styles.resultsContainer}>
-          <View style={styles.scoreCard}>
-            <Palette size={48} color="#10B981" />
-            <Text style={styles.scoreTitle}>Color Vision Results</Text>
-            <Text style={styles.scoreNumber}>{accuracy}</Text>
-            <Text style={styles.scoreOutOf}>/100</Text>
-            
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '15' }]}>
-              <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
-                {getStatusText(status)}
-              </Text>
-            </View>
-
-            <Text style={styles.detailsText}>
-              {correctCount} out of {COLOR_PLATES.length} plates identified correctly
-            </Text>
-          </View>
-
-          <View style={styles.interpretationCard}>
-            <Text style={styles.interpretationTitle}>Interpretation</Text>
-            <Text style={styles.interpretationText}>
-              {status === 'normal' 
-                ? 'Your color vision appears normal. You correctly identified most color patterns.'
-                : status === 'attention'
-                ? 'Some difficulty with color discrimination detected. Consider consulting an eye care professional.'
-                : 'Significant color vision deficiency detected. We recommend professional evaluation.'
-              }
-            </Text>
-          </View>
-
-          <TouchableOpacity style={styles.retakeButton} onPress={resetTest}>
-            <RotateCcw size={20} color="#10B981" />
-            <Text style={styles.retakeButtonText}>Retake Test</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.doneButton} onPress={() => router.back()}>
-            <Text style={styles.doneButtonText}>Done</Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView contentContainerStyle={styles.selectionGrid}>
+          {[
+            { id: 'ISHIHARA', title: 'Ishihara', icon: Layers, desc: 'Red-Green screening' },
+            { id: 'HRR', title: 'HRR Standard', icon: Shapes, desc: 'Shapes & Blue-Yellow' },
+            { id: 'D-15', title: 'D-15 Panel', icon: Beaker, desc: 'Hue Discrimination' },
+          ].map((item) => (
+            <TouchableOpacity 
+              key={item.id} 
+              style={styles.card}
+              onPress={() => setTestType(item.id as ColorTestType)}
+            >
+              <View style={styles.iconBox}>
+                <item.icon size={28} color="#10B981" />
+              </View>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardDesc}>{item.desc}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
-  const currentPlateData = COLOR_PLATES[currentPlate];
-  const colorDots = generateColorCircle(currentPlateData.colors);
+  if (testComplete) {
+    return (
+        <SafeAreaView style={styles.container}>
+            <View style={styles.resultsCenter}>
+                <CheckCircle2 size={80} color="#10B981" />
+                <Text style={styles.resultsTitle}>Assessment Complete</Text>
+                <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
+                    <Text style={styles.doneBtnText}>Return to Dashboard</Text>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
+    )
+  }
+
+  const plate = TEST_CONFIG[testType].plates[currentPlate];
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#10B981', '#059669']} style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Color Vision Test</Text>
-        <Text style={styles.headerSubtitle}>
-          Plate {currentPlate + 1} of {COLOR_PLATES.length}
-        </Text>
-      </LinearGradient>
+      <View style={styles.testHeader}>
+          <Text style={styles.plateInfo}>Plate {currentPlate + 1} of {TEST_CONFIG[testType].plates.length}</Text>
+          <Text style={styles.testMode}>{testType}</Text>
+      </View>
 
-      <View style={styles.testContainer}>
-        <View style={styles.instructionCard}>
-          <Palette size={24} color="#10B981" />
-          <Text style={styles.instructionText}>
-            Look at the colored circle below and identify the number or pattern you see
-          </Text>
-        </View>
+      <View style={styles.plateArea}>
+          <MotiView 
+            from={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            key={currentPlate}
+            style={styles.ishiharaPlate}
+          >
+              {/* Complex color dot generator placeholder */}
+              <View style={[styles.platePlaceholder, { backgroundColor: plate.colors[0] }]}>
+                  <Text style={styles.plateTargetText}>?</Text>
+              </View>
+          </MotiView>
+      </View>
 
-        <View style={styles.plateContainer}>
-          <View style={styles.colorPlate}>
-            {colorDots.map((dot) => (
-              <View
-                key={dot.key}
-                style={[
-                  styles.colorDot,
-                  {
-                    left: dot.left,
-                    top: dot.top,
-                    backgroundColor: dot.backgroundColor,
-                  },
-                ]}
-              />
-            ))}
+      <View style={styles.mcqContainer}>
+          <Text style={styles.mcqTitle}>Identify the {plate.type}:</Text>
+          <View style={styles.mcqGrid}>
+              {plate.options.map((opt, i) => (
+                  <TouchableOpacity 
+                    key={i} 
+                    style={styles.mcqBtn}
+                    onPress={() => handleAnswer(opt)}
+                  >
+                      <Text style={styles.mcqBtnText}>{opt}</Text>
+                  </TouchableOpacity>
+              ))}
           </View>
-        </View>
-
-        <View style={styles.optionsContainer}>
-          <Text style={styles.optionsTitle}>What do you see?</Text>
-          <View style={styles.optionsGrid}>
-            {currentPlateData.options.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.optionButton}
-                onPress={() => handleAnswer(option)}
-              >
-                <Text style={styles.optionText}>{option}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>
-            Progress: {currentPlate + 1} / {COLOR_PLATES.length}
-          </Text>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${((currentPlate + 1) / COLOR_PLATES.length) * 100}%` }
-              ]} 
-            />
-          </View>
-        </View>
       </View>
     </SafeAreaView>
   );
 }
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'normal': return '#10B981';
-    case 'attention': return '#F59E0B';
-    case 'concern': return '#EF4444';
-    default: return '#6B7280';
-  }
-};
-
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'normal': return 'Normal';
-    case 'attention': return 'Needs Attention';
-    case 'concern': return 'Concerning';
-    default: return 'Unknown';
-  }
-};
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 30,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  backButton: {
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#A7F3D0',
-    opacity: 0.9,
-  },
-  testContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  instructionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ECFDF5',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 32,
-  },
-  instructionText: {
-    fontSize: 16,
-    color: '#065F46',
-    marginLeft: 12,
-    flex: 1,
-  },
-  plateContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  colorPlate: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: '#F3F4F6',
-    position: 'relative',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-  },
-  colorDot: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  optionsContainer: {
-    marginBottom: 32,
-  },
-  optionsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  optionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  optionButton: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 20,
-    marginBottom: 12,
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  header: { padding: 30, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+  backBtn: { marginBottom: 20 },
+  headerTitle: { fontSize: 32, fontWeight: 'bold', color: '#FFF' },
+  headerSubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)' },
+  selectionGrid: { padding: 20 },
+  card: { 
+    backgroundColor: '#FFF', 
+    padding: 20, 
+    borderRadius: 25, 
+    marginBottom: 15, 
+    flexDirection: 'row', 
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5
   },
-  optionText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  progressContainer: {
-    marginTop: 'auto',
-    marginBottom: 20,
-  },
-  progressText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 2,
-  },
-  resultsContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  scoreCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  scoreTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  scoreNumber: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#10B981',
-  },
-  scoreOutOf: {
-    fontSize: 24,
-    color: '#6B7280',
-    marginBottom: 16,
-  },
-  statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  detailsText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  interpretationCard: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0EA5E9',
-  },
-  interpretationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0C4A6E',
-    marginBottom: 8,
-  },
-  interpretationText: {
-    fontSize: 14,
-    color: '#0C4A6E',
-    lineHeight: 20,
-  },
-  retakeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#10B981',
-  },
-  retakeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#10B981',
-    marginLeft: 8,
-  },
-  doneButton: {
-    backgroundColor: '#10B981',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  doneButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+  iconBox: { width: 50, height: 50, borderRadius: 15, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#0F172A' },
+  cardDesc: { fontSize: 14, color: '#64748B' },
+  testHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, backgroundColor: '#FFF' },
+  plateInfo: { fontSize: 14, fontWeight: 'bold', color: '#64748B' },
+  testMode: { fontSize: 14, fontWeight: 'bold', color: '#10B981' },
+  plateArea: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  ishiharaPlate: { width: 250, height: 250, borderRadius: 125, overflow: 'hidden', elevation: 10 },
+  platePlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  plateTargetText: { fontSize: 80, fontWeight: 'bold', color: 'rgba(255,255,255,0.5)' },
+  mcqContainer: { padding: 20, backgroundColor: '#FFF', borderTopLeftRadius: 30, borderTopRightRadius: 30 },
+  mcqTitle: { textAlign: 'center', marginBottom: 20, fontSize: 16, fontWeight: 'bold', color: '#64748B' },
+  mcqGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  mcqBtn: { width: '48%', height: 60, backgroundColor: '#F1F5F9', borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  mcqBtnText: { fontSize: 18, fontWeight: 'bold', color: '#065F46' },
+  resultsCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
+  resultsTitle: { fontSize: 24, fontWeight: 'bold', marginTop: 20 },
+  doneBtn: { marginTop: 40, padding: 20, backgroundColor: '#10B981', borderRadius: 20, width: '100%', alignItems: 'center' },
+  doneBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
 });

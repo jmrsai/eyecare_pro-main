@@ -1,18 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
-import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, SafeAreaView, ActivityIndicator } from 'react-native';
+import { Camera as VisionCamera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { Play } from 'lucide-react-native';
 import LottieView from 'lottie-react-native';
 import { MotiView } from 'moti';
 import { useScreenBrightness } from '../../hooks/useScreenBrightness';
 import { useAuth } from '../../context/AuthContext';
 import { saveTestResult } from '../../lib/firebase';
-import appTheme from '../../styles/theme';
+import theme, { colors, typography, spacing, layout } from '../../styles/theme';
 
 export default function PupilResponseTest() {
-  const { COLORS, SIZES, FONTS, SHADOWS, TOUCH_TARGET } = appTheme;
   const { hasPermission, requestPermission } = useCameraPermission();
-  const device = useCameraDevice('back'); // Use back camera for flash usually, or front
+  const device = useCameraDevice('back'); // Use back camera for flash
   
   const [testState, setTestState] = useState<'idle' | 'testing' | 'done'>('idle');
   const [flashMode, setFlashMode] = useState<boolean>(false);
@@ -23,7 +22,7 @@ export default function PupilResponseTest() {
     if (!hasPermission) {
       requestPermission();
     }
-  }, [hasPermission]);
+  }, [hasPermission, requestPermission]);
 
   const runTest = async () => {
     if (!device) return;
@@ -34,16 +33,15 @@ export default function PupilResponseTest() {
     // Dark phase
     setFlashMode(false);
     await new Promise(resolve => setTimeout(resolve, 2000));
-    const darkPupilSize = Math.random() * 2 + 5; // Simulating baseline size
+    const darkPupilSize = Math.random() * 2 + 5; 
 
     // Light phase
     setFlashMode(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
-    const lightPupilSize = Math.random() * 2 + 2; // Simulating constricted size
+    const lightPupilSize = Math.random() * 2 + 2; 
 
     setFlashMode(false);
     
-    // Calculate response
     const difference = darkPupilSize - lightPupilSize;
     const responseScore = Math.min(Math.max((difference / darkPupilSize) * 100, 0), 100);
     
@@ -80,7 +78,7 @@ export default function PupilResponseTest() {
           <View style={{ alignItems: 'center' }}>
             <LottieView source={require('../../assets/animations/success.json')} autoPlay loop={false} style={{ width: 100, height: 100 }} />
             <Pressable onPress={() => setTestState('idle')} style={{ marginTop: 10 }}>
-              <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Test Again</Text>
+              <Text style={{ color: colors.primary, fontWeight: 'bold' }}>Test Again</Text>
             </Pressable>
           </View>
         );
@@ -90,7 +88,7 @@ export default function PupilResponseTest() {
             style={({ pressed }) => [styles.button, { transform: [{ scale: pressed ? 0.97 : 1 }] }]}
             onPress={runTest}
           >
-            <Play color={COLORS.surface} size={32} />
+            <Play color="#FFFFFF" size={32} />
             <Text style={styles.buttonText}>Start Test</Text>
           </Pressable>
         );
@@ -98,13 +96,13 @@ export default function PupilResponseTest() {
   };
 
   const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-    title: { ...FONTS.h2, color: COLORS.text, textAlign: 'center', marginBottom: SIZES.padding },
-    cameraContainer: { width: 300, height: 300, borderRadius: 150, overflow: 'hidden', marginBottom: SIZES.padding, backgroundColor: COLORS.text, justifyContent: 'center', alignItems: 'center' },
+    container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    title: { fontSize: 24, fontWeight: 'bold', color: colors.text, textAlign: 'center', marginBottom: spacing.md },
+    cameraContainer: { width: 300, height: 300, borderRadius: 150, overflow: 'hidden', marginBottom: spacing.md, backgroundColor: colors.text, justifyContent: 'center', alignItems: 'center' },
     camera: { ...StyleSheet.absoluteFillObject },
-    button: { ...TOUCH_TARGET, flexDirection: 'row', backgroundColor: COLORS.primary, paddingHorizontal: SIZES.padding, borderRadius: SIZES.radius, ...SHADOWS.medium },
-    buttonText: { ...FONTS.body, color: COLORS.surface, marginLeft: SIZES.base },
-    permissionText: { ...FONTS.body, color: COLORS.textSecondary, textAlign: 'center', padding: SIZES.padding },
+    button: { flexDirection: 'row', backgroundColor: colors.primary, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: layout.borderRadius.md, elevation: 5 },
+    buttonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF', marginLeft: spacing.sm },
+    permissionText: { fontSize: 16, color: colors.subtext, textAlign: 'center', padding: spacing.lg },
   });
 
   if (!hasPermission) {
@@ -118,7 +116,7 @@ export default function PupilResponseTest() {
   if (!device) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -128,7 +126,8 @@ export default function PupilResponseTest() {
       <Text style={styles.title}>Pupil Response Test</Text>
       <MotiView from={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1}} transition={{ type: 'timing', duration: 500 }}>
         <View style={styles.cameraContainer}>
-            <Camera 
+            {/* @ts-ignore - VisionCamera type conflict with expo-camera */}
+            <VisionCamera 
               style={styles.camera} 
               device={device}
               isActive={testState === 'testing' || testState === 'idle'}

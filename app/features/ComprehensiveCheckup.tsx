@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TouchableOpacity } from 'react-native';
-import { MotiView, MotiText } from 'moti';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { MotiView } from 'moti';
 import { CheckCircle2, Circle, ArrowRight, Play, Info } from 'lucide-react-native';
 import appTheme from '../../styles/theme';
 import PostureCheck from './common/PostureCheck';
@@ -16,7 +16,7 @@ const TESTS = [
 ];
 
 export default function ComprehensiveCheckup() {
-  const { COLORS, SIZES, FONTS, SHADOWS } = appTheme;
+  const { COLORS } = appTheme;
   const [isPostureCorrect, setIsPostureCorrect] = useState(false);
   const [completedTests, setCompletedTests] = useState<string[]>([]);
 
