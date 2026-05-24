@@ -459,62 +459,28 @@ vision changes, eye pain, or other concerning symptoms, seek immediate medical a
 
 ---
 
-## 10. MONETIZATION STRATEGY
+## 10. SUSTAINABILITY & ACCESSIBILITY STRATEGY
 
-### 10.1 Revenue Model Framework
+### 10.1 100% Free-to-Use Patient Model
+To maximize global accessibility and align with public health standards, the EyeCare Pro patient application is **100% free of charge** for all users. There are no paywalls, premium feature gates, subscription models, or in-app purchases.
 
-#### Freemium Model (Primary)
-**Free Tier:**
-- Basic visual acuity test
-- Educational content access
-- Limited result history (30 days)
-- Community support
+*   **Complete Access to Ocular Diagnostics:** All tests (Visual Acuity, Amsler Grid, Contrast Sensitivity, Color Vision, Pupillometry) are fully unlocked.
+*   **Unlocked Clinical Therapeutics:** All vision therapy exercises, including the Brock String game and binocular routines, are open to all patients.
+*   **Unrestricted Medical Tracking:** Unlimited visual score history, trend analysis, medication reminders, and exportable PDF reports are free to use.
 
-**Premium Tier ($9.99/month or $99/year):**
-- Complete test suite access
-- Unlimited result history and analytics
-- Family account management (up to 4 members)
-- Priority customer support
-- Detailed trending and risk analysis
-- Provider communication tools
+### 10.2 Sustainability & B2B Funding Streams
+To maintain operational sustainability while keeping the consumer app free, the business model relies on institutional and business-to-business integrations:
 
-**Professional Tier ($29.99/month):**
-- Practice management features
-- Bulk patient testing capabilities
-- Advanced analytics and reporting
-- EHR integration
-- White-label customization options
+1.  **Clinician Portal Integration (SaaS):**
+    *   Eye clinics, optometrists, and ophthalmologists subscribe to a professional dashboard ($19.99/month per practitioner).
+    *   Enables doctors to remotely assign training, monitor patient compliance (e.g. Brock String training frequency), and sync visual reports directly to their EHR systems.
+2.  **Corporate Wellness Partnerships:**
+    *   Licensing of the on-device "AI Form Coach" and screen-time fatigue break system (20-20-20 alerts) to enterprise employers to reduce digital eye strain and computer vision syndrome in office workers.
+3.  **Public Health & NGO Grants:**
+    *   Ocular screening programs funded by public health organizations and NGOs seeking to scale refractive error triage in rural and low-resource settings.
+4.  **Clinical Trial Recruitment:**
+    *   Anonymized, opt-in clinical screening data shared with pharmaceutical and clinical research institutions for patient recruitment and longitudinal research.
 
-### 10.2 Additional Revenue Streams
-
-#### B2B Healthcare Partnerships
-- **Insurance Companies:** Risk assessment tools ($50-100 per assessment)
-- **Employer Wellness Programs:** Bulk licensing ($5-15 per employee/year)
-- **Optical Retail Chains:** Customer acquisition tool (revenue sharing)
-
-#### Data & Analytics (Anonymized)
-- **Population health insights** for public health organizations
-- **Epidemiological research** partnerships with academic institutions
-- **Pharmaceutical companies** for clinical trial recruitment
-
-### 10.3 Financial Projections (5-Year)
-
-#### Year 1: Development & Launch
-- **Revenue Target:** $250K
-- **User Base:** 10K registered users
-- **Conversion Rate:** 5% to premium
-
-#### Year 3: Market Establishment
-- **Revenue Target:** $2.5M
-- **User Base:** 100K registered users
-- **Premium Conversion:** 12%
-- **B2B Partnerships:** 25 active
-
-#### Year 5: Scale & Expansion
-- **Revenue Target:** $15M
-- **User Base:** 500K registered users
-- **International Markets:** 5 countries
-- **Enterprise Clients:** 100+
 
 ---
 

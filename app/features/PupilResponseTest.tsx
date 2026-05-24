@@ -9,6 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 import { saveTestResult } from '../../lib/firebase';
 import theme, { colors, typography, spacing, layout } from '../../styles/theme';
 
+const CameraComponent = VisionCamera as any;
+
 export default function PupilResponseTest() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('back'); // Use back camera for flash
@@ -126,8 +128,7 @@ export default function PupilResponseTest() {
       <Text style={styles.title}>Pupil Response Test</Text>
       <MotiView from={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1}} transition={{ type: 'timing', duration: 500 }}>
         <View style={styles.cameraContainer}>
-            {/* @ts-ignore - VisionCamera type conflict with expo-camera */}
-            <VisionCamera 
+            <CameraComponent 
               style={styles.camera} 
               device={device}
               isActive={testState === 'testing' || testState === 'idle'}

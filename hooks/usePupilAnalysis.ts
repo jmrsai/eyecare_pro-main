@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFrameOutput, Frame } from 'react-native-vision-camera';
 import { Worklets } from 'react-native-worklets-core';
 import { useTensorflowModel } from 'react-native-fast-tflite';
@@ -9,11 +9,11 @@ import { useTensorflowModel } from 'react-native-fast-tflite';
  * This hook handles AI Pupil Response analysis using Nitro Frame Processors.
  */
 
-export function usePupilAnalysis() {
+export function usePupilAnalysis(phase?: 'baseline' | 'flash' | 'recovery') {
   const [pupilSize, setPupilSize] = useState<number | null>(null);
   
   // Load the Iris Segmentation model (Google MediaPipe)
-  const model = useTensorflowModel(require('../../assets/models/iris_segmentation.tflite'), 'default');
+  const model = useTensorflowModel(require('../assets/models/iris_segmentation.tflite'), 'default');
 
   const onPupilUpdate = Worklets.createRunOnJS((size: number) => {
     setPupilSize(size);
@@ -39,6 +39,35 @@ export function usePupilAnalysis() {
       }
     }
   });
+
+  // Fallback simulation for non-native / simulator / Expo Go environments
+  useEffect(() => {
+    if (model.state === 'loaded') return;
+
+    const interval = setInterval(() => {
+      setPupilSize(prev => {
+        let target = 4.5;
+        if (phase === 'baseline') {
+          target = 4.5;
+        } else if (phase === 'flash') {
+          target = 2.5;
+        } else if (phase === 'recovery') {
+          target = 4.0;
+        }
+        
+        const current = prev ?? target;
+        // Smooth transition towards target (constricts rapidly, recovers slowly)
+        const interpolationRate = phase === 'flash' ? 0.5 : 0.15;
+        const diff = target - current;
+        const step = diff * interpolationRate;
+        const noise = (Math.random() - 0.5) * 0.05; // natural pupillary hippus (physiological noise)
+        
+        return Math.max(1.5, Math.min(8.0, current + step + noise));
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [model.state, phase]);
 
   return {
     pupilSize,

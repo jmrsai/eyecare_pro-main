@@ -13,7 +13,7 @@ const placeholderResults = {
   colorVision: 'Normal',
 };
 
-const generateHtml = (results) => {
+const generateHtml = (results: any) => {
   return `
     <html>
       <head>

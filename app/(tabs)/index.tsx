@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, Palette, Target, Grid3X3, Zap, Clock, BookOpen, AlertTriangle, Settings, ClipboardList, Shield, MapPin, Brain, Activity, TrendingUp } from 'lucide-react-native';
+import { Eye, Palette, Target, Grid3X3, Zap, Clock, BookOpen, AlertTriangle, Settings, ClipboardList, Shield, MapPin, Brain, Activity, TrendingUp, Camera, Flame, CheckCircle2 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { StyledTouchableOpacity } from '../../components/StyledTouchableOpacity';
@@ -12,6 +12,7 @@ import { useEyeStore } from '../../store/useEyeStore';
 const { width } = Dimensions.get('window');
 
 const diagnosticTests = [
+  { id: 'photo-scan', title: 'AI Photo Scanner', description: 'Scan infections & conditions', icon: Camera, route: '/tests/photo-scan' },
   { id: 'visual-acuity', title: 'Visual Acuity', description: 'Sharpness screening', icon: Eye, route: '/tests/visual-acuity' },
   { id: 'color-vision', title: 'Color Vision', description: 'Deficiency screening', icon: Palette, route: '/tests/color-vision' },
   { id: 'astigmatism', title: 'Astigmatism', description: 'Symmetry check', icon: Target, route: '/tests/astigmatism' },
@@ -23,7 +24,11 @@ const diagnosticTests = [
 
 export default function DashboardScreen() {
   const { theme, typography, spacing } = useTheme();
-  const { wellnessScore, aiInsights, dailyProgress } = useEyeStore();
+  const { wellnessScore, aiInsights, dailyProgress, dailyTasks, streak, checkDailyReset } = useEyeStore();
+
+  useEffect(() => {
+    checkDailyReset();
+  }, []);
 
   const handleTestPress = (route: string) => {
     router.push(route as any);
@@ -100,6 +105,66 @@ export default function DashboardScreen() {
           </MotiView>
         </TouchableOpacity>
 
+        {/* Daily Quests & Streaks Card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 15 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'spring', delay: 300 }}
+          style={styles.questCard}
+        >
+          <LinearGradient colors={['#1e1b4b', '#0f172a']} style={styles.questGradient}>
+            <View style={styles.questHeader}>
+              <View style={styles.questTitleRow}>
+                <Flame size={20} color="#ff9800" style={{ marginRight: 6 }} />
+                <Text style={styles.questTitle}>Daily Sight Quests</Text>
+              </View>
+              <View style={styles.streakBadge}>
+                <Text style={styles.streakText}>🔥 {streak} Day Streak</Text>
+              </View>
+            </View>
+            
+            <Text style={styles.questSubtitle}>
+              Complete all daily tasks to keep your streak and maximize vision wellness.
+            </Text>
+            
+            <View style={styles.tasksList}>
+              {dailyTasks.map((task) => (
+                <TouchableOpacity
+                  key={task.id}
+                  style={[styles.taskItem, task.completed && styles.taskItemCompleted]}
+                  onPress={() => {
+                    if (!task.completed) {
+                      router.push(task.route as any);
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.taskIconWrapper}>
+                    {task.completed ? (
+                      <CheckCircle2 size={18} color="#00e676" style={{ marginTop: 1 }} />
+                    ) : (
+                      <Clock size={18} color="#94a3b8" style={{ marginTop: 1 }} />
+                    )}
+                  </View>
+                  
+                  <View style={styles.taskMeta}>
+                    <Text style={[styles.taskTitleText, task.completed && styles.taskTitleCompleted]}>
+                      {task.title}
+                    </Text>
+                    <Text style={styles.taskDescText}>{task.description}</Text>
+                  </View>
+                  
+                  <View style={[styles.ptsBadge, task.completed && styles.ptsBadgeCompleted]}>
+                    <Text style={[styles.ptsText, task.completed && styles.ptsTextCompleted]}>
+                      +{task.points} pts
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </LinearGradient>
+        </MotiView>
+
         <Text style={styles.sectionTitle}>Medical Diagnostics</Text>
         
         {diagnosticTests.map((test, index) => (
@@ -150,7 +215,18 @@ const styles = StyleSheet.create({
   encryptionBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, gap: 5 },
   encryptionText: { fontSize: 10, color: '#FFF', fontWeight: 'bold' },
   content: { flex: 1, padding: 20 },
-  wellnessCard: { borderRadius: 30, overflow: 'hidden', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, marginBottom: 30 },
+  wellnessCard: { 
+    borderRadius: 32, 
+    overflow: 'hidden', 
+    elevation: 8, 
+    shadowColor: '#0F172A', 
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06, 
+    shadowRadius: 24, 
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: '#E2E8F0'
+  },
   wellnessGradient: { padding: 25 },
   wellnessHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   scoreCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
@@ -167,11 +243,138 @@ const styles = StyleSheet.create({
   progressBar: { height: 8, backgroundColor: '#E2E8F0', borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#0F172A', marginBottom: 20 },
-  testCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 20, marginBottom: 15, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 5 },
-  testIconBox: { width: 50, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  testCard: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#FFF', 
+    padding: 18, 
+    borderRadius: 24, 
+    marginBottom: 16, 
+    shadowColor: '#1E293B', 
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04, 
+    shadowRadius: 12, 
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F1F5F9'
+  },
+  testIconBox: { 
+    width: 52, 
+    height: 52, 
+    borderRadius: 16, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 16 
+  },
   testMeta: { flex: 1 },
   testTitle: { fontSize: 16, fontWeight: 'bold', color: '#0F172A' },
   testDesc: { fontSize: 12, color: '#64748B' },
   specialistCard: { backgroundColor: '#0F172A', padding: 20, borderRadius: 25, flexDirection: 'row', alignItems: 'center', gap: 15, marginTop: 10 },
-  specialistText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
+  specialistText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+
+  questCard: {
+    borderRadius: 32,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#1e1b4b',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  questGradient: {
+    padding: 24,
+  },
+  questHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  questTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  questTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  streakBadge: {
+    backgroundColor: '#ff980022',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#ff9800',
+  },
+  streakText: {
+    color: '#ff9800',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  questSubtitle: {
+    color: '#94a3b8',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  tasksList: {
+    gap: 12,
+  },
+  taskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    padding: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  taskItemCompleted: {
+    backgroundColor: 'rgba(0, 230, 118, 0.04)',
+    borderColor: 'rgba(0, 230, 118, 0.1)',
+  },
+  taskIconWrapper: {
+    marginRight: 12,
+  },
+  taskMeta: {
+    flex: 1,
+  },
+  taskTitleText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  taskTitleCompleted: {
+    color: '#64748b',
+    textDecorationLine: 'line-through',
+  },
+  taskDescText: {
+    color: '#64748b',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  ptsBadge: {
+    backgroundColor: 'rgba(0, 229, 255, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 229, 255, 0.3)',
+  },
+  ptsBadgeCompleted: {
+    backgroundColor: 'rgba(0, 230, 118, 0.1)',
+    borderColor: 'rgba(0, 230, 118, 0.3)',
+  },
+  ptsText: {
+    color: '#00e5ff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  ptsTextCompleted: {
+    color: '#00e676',
+  }
 });

@@ -6,10 +6,6 @@ import {
   Group,
   LinearGradient,
   vec,
-  useSharedValueEffect,
-  useValue,
-  runTiming,
-  Easing,
   Blur,
 } from '@shopify/react-native-skia';
 import Animated, {
@@ -18,6 +14,7 @@ import Animated, {
   withRepeat,
   withTiming,
   interpolate,
+  Easing,
 } from 'react-native-reanimated';
 
 export const NeuralSync = () => {

@@ -31,7 +31,7 @@ export default function VisionTherapy() {
   }, [currentStep]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: any;
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(t => t - 1);

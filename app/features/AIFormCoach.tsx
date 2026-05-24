@@ -1,174 +1,141 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as tf from '@tensorflow/tfjs';
-import * as posenet from '@tensorflow-models/posenet';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { Camera as VisionCamera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { MotiView } from 'moti';
 import { X, Zap, RefreshCw, AlertCircle, Eye } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useFormCoachAnalysis } from '../../hooks/useFormCoachAnalysis';
 
 export default function AIFormCoach() {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [isModelReady, setIsModelReady] = useState(false);
-  const [postureScore, setPostureScore] = useState(100);
-  const [statusMessage, setStatusMessage] = useState('Initializing AI...');
-  const [distanceAlert] = useState(false);
-  const [blinkRate, setBlinkRate] = useState(15); // Average bpm
-  const [lastBlinkTime, setLastBlinkTime] = useState(Date.now());
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const device = useCameraDevice('front');
+  const { postureScore, blinkRate, distanceAlert, frameOutput, modelState } = useFormCoachAnalysis();
   
-  const cameraRef = useRef<any>(null);
-  const netRef = useRef<posenet.PoseNet | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isCoaching, setIsCoaching] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('Initializing AI...');
 
   useEffect(() => {
-    (async () => {
-      await tf.ready();
-      const net = await posenet.load({
-        architecture: 'MobileNetV1',
-        outputStride: 16,
-        inputResolution: { width: 257, height: 257 },
-        multiplier: 0.5
-      });
-      netRef.current = net;
-      setIsModelReady(true);
-      setStatusMessage('Coach Ready');
-    })();
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
-
-  const startCoaching = () => {
-    if (!isModelReady) return;
-    
-    intervalRef.current = setInterval(async () => {
-      // Logic for capturing frame and analyzing
-      // Note: In a real production Expo app, we'd use expo-gl 
-      // for direct texture access, but for this MVP 
-      // we'll simulate the analysis loop and score updates
-      simulateAnalysis();
-    }, 1000) as any;
-  };
-
-  const simulateAnalysis = () => {
-    // Simulated logic to show HUD functionality
-    const randomShift = Math.random() * 10 - 5;
-    setPostureScore(prev => Math.min(100, Math.max(0, prev + randomShift)));
-    
-    // Simulate blink detection
-    const now = Date.now();
-    if (Math.random() > 0.95) { // 5% chance of blink every second
-      setLastBlinkTime(now);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!hasPermission) {
+      requestPermission();
     }
+  }, [hasPermission]);
 
-    // Calculate blink rate (simulated)
-    const secondsElapsed = (now - lastBlinkTime) / 1000;
-    if (secondsElapsed > 10) {
-      setStatusMessage('Blink more often!');
-      setBlinkRate(prev => Math.max(5, prev - 1));
+  useEffect(() => {
+    if (modelState === 'loaded') {
+      setStatusMessage('AI Mesh Model Loaded');
     } else {
-      setBlinkRate(prev => Math.min(20, prev + 0.1));
+      setStatusMessage('Model loading (Running Simulation)...');
     }
-    
+  }, [modelState]);
+
+  useEffect(() => {
+    if (!isCoaching) return;
+
+    // Trigger haptics on posture warning
     if (postureScore < 70) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      setStatusMessage('Adjust your posture');
-    } else if (secondsElapsed <= 10) {
-      setStatusMessage('Optimal Focus');
     }
+  }, [postureScore, isCoaching]);
+
+  const startCoaching = () => {
+    setIsCoaching(true);
+    setStatusMessage('Coaching Active');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  if (!permission) return <View />;
-  if (!permission.granted) {
+  if (!hasPermission) {
     return (
       <View style={styles.center}>
-        <Text style={styles.permissionText}>We need camera access for the Form Coach</Text>
-        <Pressable onPress={requestPermission} style={styles.button}>
-          <Text style={styles.buttonText}>Grant Permission</Text>
-        </Pressable>
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={styles.permissionText}>Awaiting camera permissions...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing="front" ref={cameraRef}>
-        <LinearGradient colors={['rgba(0,0,0,0.6)', 'transparent', 'rgba(0,0,0,0.6)']} style={styles.overlay}>
-          <View style={styles.topBar}>
-            <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-              <X size={24} color="#FFF" />
-            </Pressable>
-            <View style={styles.statusBadge}>
-              <View style={[styles.dot, { backgroundColor: isModelReady ? '#10B981' : '#F59E0B' }]} />
-              <Text style={styles.statusText}>{statusMessage}</Text>
-            </View>
+      {device && (
+        <VisionCamera 
+          style={styles.camera} 
+          device={device} 
+          isActive={true} 
+          outputs={[frameOutput]}
+        />
+      )}
+      
+      <LinearGradient colors={['rgba(0,0,0,0.6)', 'transparent', 'rgba(0,0,0,0.6)']} style={styles.overlay}>
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.back()} style={styles.closeBtn}>
+            <X size={24} color="#FFF" />
+          </Pressable>
+          <View style={styles.statusBadge}>
+            <View style={[styles.dot, { backgroundColor: isCoaching ? '#10B981' : '#F59E0B' }]} />
+            <Text style={styles.statusText}>{statusMessage}</Text>
           </View>
+        </View>
 
-          <View style={styles.hudContainer}>
+        <View style={styles.hudContainer}>
+          <MotiView 
+            animate={{ scale: postureScore < 70 && isCoaching ? 1.1 : 1 }}
+            style={[styles.scoreRing, { borderColor: !isCoaching ? '#64748B' : postureScore > 70 ? '#3B82F6' : '#EF4444' }]}
+          >
+            <Text style={styles.scoreLabel}>POSTURE</Text>
+            <Text style={styles.scoreValue}>{isCoaching ? Math.round(postureScore) : '--'}%</Text>
+          </MotiView>
+
+          <View style={styles.secondaryHud}>
             <MotiView 
-              animate={{ scale: postureScore < 70 ? 1.1 : 1 }}
-              style={[styles.scoreRing, { borderColor: postureScore > 70 ? '#3B82F6' : '#EF4444' }]}
+              animate={{ opacity: blinkRate < 10 && isCoaching ? 1 : 0.7 }}
+              style={[styles.miniHud, { borderColor: !isCoaching ? '#64748B' : blinkRate > 10 ? '#10B981' : '#F59E0B' }]}
             >
-              <Text style={styles.scoreLabel}>POSTURE</Text>
-              <Text style={styles.scoreValue}>{Math.round(postureScore)}%</Text>
+              <Eye size={16} color="#FFF" />
+              <Text style={styles.miniHudValue}>{isCoaching ? Math.round(blinkRate) : '--'}</Text>
+              <Text style={styles.miniHudLabel}>BPM</Text>
             </MotiView>
-
-            <View style={styles.secondaryHud}>
-              <MotiView 
-                animate={{ opacity: blinkRate < 10 ? 1 : 0.7 }}
-                style={[styles.miniHud, { borderColor: blinkRate > 10 ? '#10B981' : '#F59E0B' }]}
-              >
-                <Eye size={16} color="#FFF" />
-                <Text style={styles.miniHudValue}>{Math.round(blinkRate)}</Text>
-                <Text style={styles.miniHudLabel}>BPM</Text>
-              </MotiView>
-            </View>
           </View>
+        </View>
 
-          <View style={styles.bottomBar}>
-            <View style={styles.infoCard}>
-              <View style={styles.infoRow}>
-                <Zap size={18} color="#3B82F6" />
-                <Text style={styles.infoTitle}>AI Monitoring Active</Text>
-              </View>
-              <Text style={styles.infoDesc}>On-device processing ensures your privacy is 100% protected.</Text>
+        <View style={styles.bottomBar}>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <Zap size={18} color="#3B82F6" />
+              <Text style={styles.infoTitle}>On-Device AI Active</Text>
             </View>
+            <Text style={styles.infoDesc}>On-device processing ensures your privacy is 100% protected.</Text>
+          </View>
+          
+          <View style={styles.disclaimerBox}>
+            <AlertCircle size={14} color="#FF9500" />
+            <Text style={styles.disclaimerText}>
+              EyeCare Coach is not a medical device. Use for postural guidance only.
+            </Text>
+          </View>
+          
+          <View style={styles.controls}>
+            <Pressable onPress={startCoaching} style={styles.actionBtn}>
+              <RefreshCw size={24} color="#FFF" />
+              <Text style={styles.actionText}>{isCoaching ? 'Recalibrate' : 'Start Coach'}</Text>
+            </Pressable>
             
-            <View style={styles.disclaimerBox}>
-              <AlertCircle size={14} color="#FF9500" />
-              <Text style={styles.disclaimerText}>
-                EyeCare Coach is not a medical device. Use for postural guidance only.
+            <View style={styles.alertBox}>
+              <AlertCircle size={20} color={isCoaching && distanceAlert ? '#EF4444' : '#64748B'} />
+              <Text style={[styles.alertText, { color: isCoaching && distanceAlert ? '#EF4444' : '#FFF' }]}>
+                Distance: {!isCoaching ? '--' : distanceAlert ? 'Too Close' : 'Optimal'}
               </Text>
             </View>
-            
-            <View style={styles.controls}>
-              <Pressable onPress={startCoaching} style={styles.actionBtn}>
-                <RefreshCw size={24} color="#FFF" />
-                <Text style={styles.actionText}>Calibrate</Text>
-              </Pressable>
-              
-              <View style={styles.alertBox}>
-                <AlertCircle size={20} color={distanceAlert ? '#EF4444' : '#64748B'} />
-                <Text style={[styles.alertText, { color: distanceAlert ? '#EF4444' : '#FFF' }]}>
-                  Distance: {distanceAlert ? 'Too Close' : 'Optimal'}
-                </Text>
-              </View>
-            </View>
           </View>
-        </LinearGradient>
-      </CameraView>
+        </View>
+      </LinearGradient>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  camera: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000', padding: 40 },
+  camera: { ...StyleSheet.absoluteFillObject },
   overlay: { flex: 1, padding: 20, justifyContent: 'space-between' },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 40 },
   closeBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
@@ -206,7 +173,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   bottomBar: { marginBottom: 30 },
-  infoCard: { backgroundColor: 'rgba(255,255,255,0.1)', padding: 16, borderRadius: 20, marginBottom: 20, backdropFilter: 'blur(10px)' },
+  infoCard: { backgroundColor: 'rgba(255,255,255,0.1)', padding: 16, borderRadius: 20, marginBottom: 20 },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   infoTitle: { color: '#FFF', fontWeight: '700', marginLeft: 8 },
   infoDesc: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
@@ -215,9 +182,7 @@ const styles = StyleSheet.create({
   actionText: { color: '#FFF', fontWeight: '700', marginLeft: 10 },
   alertBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16 },
   alertText: { color: '#FFF', fontWeight: '600', marginLeft: 8 },
-  permissionText: { color: '#FFF', textAlign: 'center', marginBottom: 20, fontSize: 16 },
-  button: { backgroundColor: '#3B82F6', paddingHorizontal: 30, paddingVertical: 15, borderRadius: 12 },
-  buttonText: { color: '#FFF', fontWeight: 'bold' },
+  permissionText: { color: '#FFF', marginTop: 16, textAlign: 'center', fontSize: 16 },
   disclaimerBox: {
     flexDirection: 'row',
     alignItems: 'center',

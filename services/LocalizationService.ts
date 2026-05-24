@@ -47,13 +47,13 @@ const translations = {
   // Add other languages here
 };
 
-const getLocale = () => {
-  const locale = Localization.locale;
-  return locale.split('-')[0]; // Get the language code (e.g., 'en' from 'en-US')
+const getLocale = (): 'en' | 'es' => {
+  const locales = Localization.getLocales();
+  const lang = locales[0]?.languageCode || 'en';
+  return (lang === 'es' ? 'es' : 'en');
 };
 
 export const t = (key: keyof typeof translations.en) => {
-  const locale = getLocale();
-  const lang = translations[locale] ? locale : 'en';
+  const lang = getLocale();
   return translations[lang][key] || translations.en[key] || key;
 };

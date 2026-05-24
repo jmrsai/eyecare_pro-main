@@ -9,6 +9,8 @@ import { useEyeStore } from '../../store/useEyeStore';
 
 const TRAINING_PLAN = [
   { id: 'reaction', title: 'Reaction Logic', duration: '1 min', icon: Zap, color: '#3B82F6', route: '/training/games/reaction' },
+  { id: 'brock', title: 'Brock String Fusion', duration: '2 min', icon: Activity, color: '#10B981', route: '/training/games/brock-string' },
+  { id: 'gamma', title: '40Hz Neuro-Sync', duration: '15 min', icon: Brain, color: '#A78BFA', route: '/training/games/gamma-therapy' },
   { id: 'dichoptic', title: 'Lazy Eye Therapy', duration: '3 min', icon: Palette, color: '#EF4444', route: '/training/games/dichoptic-training' },
   { id: 'peripheral', title: 'Peripheral Scope', duration: '1 min', icon: Target, color: '#10B981', route: '/training/games/peripheral' },
   { id: 'focus', title: 'Focus Shift', duration: '1 min', icon: Activity, color: '#8B5CF6', route: '/training/games/focus' },

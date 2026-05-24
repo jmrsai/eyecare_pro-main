@@ -15,6 +15,8 @@ export const colors = {
   notification: '#EF4444', // Rose 500
   warning: '#F59E0B', // Amber 500
   info: '#3B82F6', // Blue 500
+  success: '#10B981',
+  error: '#EF4444',
 };
 
 export const lightTheme = {
@@ -91,4 +93,65 @@ const theme = {
   layout,
 };
 
-export default theme;
+export const COLORS = {
+  ...colors,
+  surface: colors.card,
+  success: colors.accent,
+  alert: colors.notification,
+  textSecondary: colors.subtext,
+};
+
+export const SIZES = {
+  base: spacing.xs,
+  padding: spacing.md,
+  radius: layout.borderRadius.md,
+};
+
+export const FONTS = {
+  body: typography.body,
+  caption: typography.caption,
+  h1: typography.h1,
+  h2: typography.h2,
+  h3: typography.h3,
+};
+
+export const SHADOWS = {
+  light: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+};
+
+export const TOUCH_TARGET = {
+  minWidth: 44,
+  minHeight: 44,
+  justifyContent: 'center' as const,
+  alignItems: 'center' as const,
+};
+
+export type Theme = typeof lightTheme;
+export type Typography = typeof typography;
+export type Spacing = typeof spacing;
+export type Layout = typeof layout;
+
+const fullTheme = {
+  ...theme,
+  COLORS,
+  SIZES,
+  FONTS,
+  SHADOWS,
+  TOUCH_TARGET,
+};
+
+export default fullTheme;
+

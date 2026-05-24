@@ -19,7 +19,7 @@ export default function MagicEyeHugScreen() {
   const [timer, setTimer] = useState(300); // 5 minutes
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: any;
     if (isActive && timer > 0) {
       interval = setInterval(() => {
         setTimer(t => t - 1);

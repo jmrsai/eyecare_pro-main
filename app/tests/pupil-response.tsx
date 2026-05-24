@@ -33,8 +33,8 @@ export default function PupilResponseTest() {
   const device = useCameraDevice('front');
   const { hasPermission, requestPermission } = useCameraPermission();
   
-  const { pupilSize, frameOutput } = usePupilAnalysis();
-  const { isDistanceCorrect } = useFaceDistance();
+  const { pupilSize, frameOutput: pupilFrameOutput } = usePupilAnalysis(phase);
+  const { isDistanceCorrect, frameOutput: distanceFrameOutput } = useFaceDistance();
 
   useEffect(() => {
     if (!hasPermission) {
@@ -145,7 +145,7 @@ export default function PupilResponseTest() {
                     style={StyleSheet.absoluteFill} 
                     device={device} 
                     isActive={true} 
-                    outputs={[frameOutput]} // REQUIRED FOR V5
+                    outputs={[pupilFrameOutput, distanceFrameOutput]} // REQUIRED FOR V5
                 />
             )}
             <DistanceMonitor />

@@ -6,7 +6,7 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
-  }),
+  } as any),
 });
 
 export const registerForPushNotificationsAsync = async () => {
@@ -19,10 +19,10 @@ export const registerForPushNotificationsAsync = async () => {
     });
   }
 
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  const { status: existingStatus } = await Notifications.getPermissionsAsync() as any;
   let finalStatus = existingStatus;
   if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = await Notifications.requestPermissionsAsync() as any;
     finalStatus = status;
   }
   
@@ -41,7 +41,7 @@ export const scheduleBreakReminder = async (minutes: number) => {
     trigger: {
       seconds: minutes * 60,
       repeats: true,
-    },
+    } as any,
   });
 };
 

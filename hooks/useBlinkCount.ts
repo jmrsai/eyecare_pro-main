@@ -9,7 +9,7 @@ import { Worklets } from 'react-native-worklets-core';
 
 export function useBlinkCount() {
   const [blinkCount, setBlinkCount] = useState(0);
-  const model = useTensorflowModel(require('../../assets/models/face_mesh.tflite'), 'default');
+  const model = useTensorflowModel(require('../assets/models/face_mesh.tflite'), 'default');
 
   const onBlink = Worklets.createRunOnJS(() => {
     setBlinkCount(prev => prev + 1);

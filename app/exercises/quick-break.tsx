@@ -92,7 +92,7 @@ export default function QuickBreakExercise() {
   }, [currentExerciseIndex, completeWorkout]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: any = null;
     
     if (isActive && timeRemaining > 0) {
       interval = setInterval(() => {

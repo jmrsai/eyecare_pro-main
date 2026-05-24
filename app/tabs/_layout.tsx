@@ -18,10 +18,10 @@ import PupilResponseTest from '../features/PupilResponseTest';
 const Tab = createBottomTabNavigator();
 
 const ProtectedDashboard = () => {
-  const { isAuthenticated, login } = useAuth();
+  const [unlocked, setUnlocked] = React.useState(false);
   
-  if (!isAuthenticated) {
-    return <BiometricAuthScreen onAuthenticated={login} />;
+  if (!unlocked) {
+    return <BiometricAuthScreen onAuthenticated={() => setUnlocked(true)} />;
   }
   
   return <ResultsDashboard />;
@@ -43,11 +43,12 @@ const AppNavigator = () => {
 };
 
 export default function App() {
+  const NavContainer = NavigationContainer as any;
   return (
     <AuthProvider>
-      <NavigationContainer independent={true}>
+      <NavContainer independent={true}>
         <AppNavigator />
-      </NavigationContainer>
+      </NavContainer>
     </AuthProvider>
   );
 }

@@ -10,12 +10,12 @@ import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 
 // Replace these with your actual Firebase config keys from the Firebase console
 const firebaseConfig = {
-  apiKey: "[GCP_API_KEY]",
-  authDomain: "medimind-ai-7nctq.firebaseapp.com",
-  projectId: "medimind-ai-7nctq",
-  storageBucket: "medimind-ai-7nctq.firebasestorage.app",
-  messagingSenderId: "2916352478",
-  appId: "1:2916352478:web:bae903cbdfdcfd1a7f5d4f"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyCwGLHWUaqR6N4oMPlya6ZP0kmHZUh4FII",
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "medimind-ai-7nctq.firebaseapp.com",
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "medimind-ai-7nctq",
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "medimind-ai-7nctq.firebasestorage.app",
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "2916352478",
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:2916352478:web:bae903cbdfdcfd1a7f5d4f"
 };
 
 import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs } from 'firebase/firestore';

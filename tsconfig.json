@@ -21,14 +21,7 @@
       ]
     },
     "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "types": [
-      "node",
-      "react",
-      "react-native",
-      "expo",
-      "react-native-vision-camera"
-    ]
+    "resolveJsonModule": true
   },
   "include": [
     "**/*.ts",

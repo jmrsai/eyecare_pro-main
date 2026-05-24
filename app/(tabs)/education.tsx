@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Linking, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, AlertTriangle, Heart, Sun, Shield } from 'lucide-react-native';
+import { Eye, AlertTriangle, Heart, Sun, Shield, Search, BookOpen, ExternalLink } from 'lucide-react-native';
 
 interface EducationTopic {
   id: string;
@@ -55,8 +55,75 @@ const educationTopics: EducationTopic[] = [
   },
 ];
 
+interface PubMedArticle {
+  id: string;
+  title: string;
+  authors: string;
+  journal: string;
+  pubdate: string;
+  url: string;
+}
+
 export default function EducationScreen() {
   const [selectedTopic, setSelectedTopic] = useState<EducationTopic | null>(null);
+
+  // PubMed states
+  const [pubmedQuery, setPubmedQuery] = useState('');
+  const [articles, setArticles] = useState<PubMedArticle[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch initial default optometry articles on mount
+    fetchClinicalResearch('eye health clinical trial');
+  }, []);
+
+  const fetchClinicalResearch = async (searchTerm: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // 1. Search for article IDs
+      const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(searchTerm)}&retmode=json&retmax=4`;
+      const searchRes = await fetch(searchUrl);
+      const searchJson = await searchRes.json();
+      const ids: string[] = searchJson.esearchresult?.idlist || [];
+
+      if (ids.length === 0) {
+        setArticles([]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fetch Summaries of these IDs
+      const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${ids.join(',')}&retmode=json`;
+      const summaryRes = await fetch(summaryUrl);
+      const summaryJson = await summaryRes.json();
+      
+      const parsedArticles: PubMedArticle[] = ids.map((id) => {
+        const doc = summaryJson.result[id];
+        return {
+          id,
+          title: doc?.title || 'No Title Available',
+          authors: doc?.authors?.map((a: any) => a.name).join(', ') || 'Unknown Authors',
+          journal: doc?.source || 'PubMed Central',
+          pubdate: doc?.pubdate || 'N/A',
+          url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`
+        };
+      });
+
+      setArticles(parsedArticles);
+    } catch (e) {
+      console.error(e);
+      setError('Could not connect to medical database.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    if (!pubmedQuery.trim()) return;
+    fetchClinicalResearch(pubmedQuery.trim());
+  };
 
   if (selectedTopic) {
     return (
@@ -97,12 +164,12 @@ export default function EducationScreen() {
         colors={['#8B5CF6', '#7C3AED']}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Eye Health Education</Text>
-        <Text style={styles.headerSubtitle}>Learn about eye health and vision care</Text>
+        <Text style={styles.headerTitle}>Eye Health Library</Text>
+        <Text style={styles.headerSubtitle}>Optometry guides and real-time medical updates</Text>
       </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>Educational Topics</Text>
+        <Text style={styles.sectionTitle}>Essential Topics</Text>
         
         {educationTopics.map((topic) => {
           const IconComponent = topic.icon;
@@ -126,6 +193,59 @@ export default function EducationScreen() {
           );
         })}
 
+        {/* PubMed Real-time Database Search Section */}
+        <View style={styles.pubmedHeaderSection}>
+          <Text style={styles.sectionTitle}>NCBI PubMed Medical Feed</Text>
+          <Text style={styles.sectionSubtitle}>Search official, peer-reviewed clinical studies</Text>
+        </View>
+
+        <View style={styles.searchBarContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search PubMed (e.g. Myopia, Dry Eye)..."
+            placeholderTextColor="#94A3B8"
+            value={pubmedQuery}
+            onChangeText={setPubmedQuery}
+            onSubmitEditing={handleSearch}
+          />
+          <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
+            <Search size={20} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
+        {loading ? (
+          <View style={styles.centerSpinner}>
+            <ActivityIndicator size="large" color="#7C3AED" />
+            <Text style={styles.spinnerText}>Loading official clinical documents...</Text>
+          </View>
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : (
+          <View style={styles.articleList}>
+            {articles.map((art) => (
+              <TouchableOpacity
+                key={art.id}
+                style={styles.pubmedCard}
+                onPress={() => Linking.openURL(art.url)}
+              >
+                <View style={styles.pubmedCardHeader}>
+                  <BookOpen size={18} color="#7C3AED" style={{ marginRight: 8 }} />
+                  <Text style={styles.journalName} numberOfLines={1}>{art.journal}</Text>
+                </View>
+                <Text style={styles.pubmedTitle}>{art.title}</Text>
+                <Text style={styles.authorsName} numberOfLines={1}>{art.authors}</Text>
+                <View style={styles.pubmedCardFooter}>
+                  <Text style={styles.pubmedDate}>Published: {art.pubdate}</Text>
+                  <View style={styles.linkRow}>
+                    <Text style={styles.linkLabel}>PubMed Central</Text>
+                    <ExternalLink size={12} color="#7C3AED" style={{ marginLeft: 4 }} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         <View style={styles.resourcesCard}>
           <Text style={styles.resourcesTitle}>📚 Additional Resources</Text>
           <Text style={styles.resourcesText}>
@@ -147,6 +267,8 @@ export default function EducationScreen() {
             • Chemical exposure to eyes
           </Text>
         </View>
+        
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -170,7 +292,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#DDD6FE',
     opacity: 0.9,
   },
@@ -188,30 +310,41 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#0F172A',
+    marginBottom: 12,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: -8,
     marginBottom: 16,
+  },
+  pubmedHeaderSection: {
+    marginTop: 28,
   },
   topicCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    borderRadius: 20,
+    marginBottom: 14,
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F1F5F9'
   },
   topicCardContent: {
     flexDirection: 'row',
-    padding: 20,
+    padding: 18,
     alignItems: 'center',
   },
   iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -220,86 +353,184 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topicTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#0F172A',
     marginBottom: 4,
   },
   topicDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
   },
   articleContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    marginVertical: 20,
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
   },
   articleText: {
-    fontSize: 16,
-    color: '#374151',
+    fontSize: 15,
+    color: '#334155',
     lineHeight: 24,
   },
   disclaimerCard: {
     backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 20,
     borderLeftWidth: 4,
     borderLeftColor: '#F59E0B',
   },
   disclaimerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: 'bold',
     color: '#92400E',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   disclaimerText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#92400E',
+    lineHeight: 18,
+  },
+  searchBarContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  searchInput: {
+    flex: 1,
+    height: 52,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    color: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  searchBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#7C3AED',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerSpinner: {
+    alignItems: 'center',
+    padding: 30,
+    gap: 12,
+  },
+  spinnerText: {
+    color: '#64748B',
+    fontSize: 13,
+  },
+  errorText: {
+    color: '#EF4444',
+    textAlign: 'center',
+    marginVertical: 12,
+  },
+  articleList: {
+    gap: 14,
+    marginBottom: 20,
+  },
+  pubmedCard: {
+    backgroundColor: '#FFF',
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  pubmedCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  journalName: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#7C3AED',
+    flex: 1,
+  },
+  pubmedTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#0F172A',
     lineHeight: 20,
+    marginBottom: 6,
+  },
+  authorsName: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 10,
+  },
+  pubmedCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 10,
+  },
+  pubmedDate: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  linkLabel: {
+    fontSize: 12,
+    color: '#7C3AED',
+    fontWeight: '600',
   },
   resourcesCard: {
     backgroundColor: '#F0F9FF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: 18,
+    marginVertical: 20,
     borderLeftWidth: 4,
     borderLeftColor: '#0EA5E9',
   },
   resourcesTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: 'bold',
     color: '#0C4A6E',
     marginBottom: 8,
   },
   resourcesText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#0C4A6E',
     lineHeight: 20,
   },
   emergencyCard: {
     backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 20,
     borderLeftWidth: 4,
     borderLeftColor: '#EF4444',
   },
   emergencyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: 'bold',
     color: '#991B1B',
     marginBottom: 8,
   },
   emergencyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#991B1B',
     lineHeight: 20,
   },

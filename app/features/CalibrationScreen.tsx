@@ -14,7 +14,7 @@ export default function CalibrationScreen() {
   const boxWidth = useSharedValue(screenWidth * 0.5); // Initial width
 
   const panGesture = Gesture.Pan()
-    .onChange((event) => {
+    .onChange((event: any) => {
       boxWidth.value += event.changeX;
     });
 

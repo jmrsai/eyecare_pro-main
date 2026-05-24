@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import { Canvas, Circle, Group, Paint, useSharedValue, withRepeat, withTiming, Easing, Rect } from '@shopify/react-native-skia';
+import { Canvas, Circle, Group, Paint, Rect } from '@shopify/react-native-skia';
+import { useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 
 const { width, height } = Dimensions.get('window');
 

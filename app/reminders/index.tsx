@@ -45,10 +45,10 @@ export default function RemindersScreen() {
   }, []);
 
   const registerForPushNotificationsAsync = async () => {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    const { status: existingStatus } = await Notifications.getPermissionsAsync() as any;
     let finalStatus = existingStatus;
     if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync() as any;
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {

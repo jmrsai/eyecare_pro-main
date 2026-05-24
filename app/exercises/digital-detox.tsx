@@ -135,7 +135,7 @@ export default function DigitalDetoxExercise() {
   }, [currentExerciseIndex, totalExercises, completeWorkout]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: any = null;
     
     if (isActive && timeRemaining > 0) {
       interval = setInterval(() => {
@@ -155,7 +155,7 @@ export default function DigitalDetoxExercise() {
   }, [isActive, timeRemaining, nextExercise]);
 
   useEffect(() => {
-    let instructionInterval: NodeJS.Timeout | null = null;
+    let instructionInterval: any = null;
     if (isActive && currentExercise.type === 'active') {
       instructionInterval = setInterval(() => {
         setCurrentInstruction(prev => 

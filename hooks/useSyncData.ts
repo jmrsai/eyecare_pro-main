@@ -33,6 +33,6 @@ async function getLocalUnsyncedResults() {
   return [];
 }
 
-async function markAsSynced(logs) {
+async function markAsSynced(logs: any) {
   // Implement your logic to mark logs as synced in SQLite
 }

@@ -30,10 +30,6 @@ export default function ResultsScreen() {
     blinkRate: 14
   });
 
-  useEffect(() => {
-    loadResults();
-  }, [loadResults]);
-
   const loadResults = useCallback(async () => {
     try {
       const storedResults = await AsyncStorage.getItem('testResults');
@@ -75,7 +71,12 @@ export default function ResultsScreen() {
     }
   }, []);
 
+  useEffect(() => {
+    loadResults();
+  }, [loadResults]);
+
   const handleDownload = async () => {
+
     try {
       await generateEyeHealthReport(results, habits);
       Toast.show({

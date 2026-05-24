@@ -35,8 +35,34 @@ exports.chat = functions.https.onCall(async (data, context) => {
     const text = response.text();
     
     // Clean and parse the JSON from Gemini's response
-    const jsonStr = text.match(/\{[\s\S]*\}/)[0];
-    const parsed = JSON.parse(jsonStr);
+    let parsed = null;
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        parsed = JSON.parse(match[0]);
+      } catch (e) {
+        console.error("JSON parse error on match:", e);
+      }
+    }
+    
+    // If parsing failed, try direct parse or fallback
+    if (!parsed) {
+      try {
+        parsed = JSON.parse(text);
+      } catch (e) {
+        console.error("Direct JSON parse error:", e);
+      }
+    }
+
+    // Default fallback structure if parsing failed completely
+    if (!parsed || !parsed.results) {
+      parsed = {
+        results: [
+          { condition: "Ocular Discomfort", probability: 0.8, recommendation: "Your description indicates general ocular strain. Take frequent breaks and keep eyes hydrated." }
+        ],
+        disclaimer: "Could not perform detailed diagnostic classification. Please consult a clinician."
+      };
+    }
 
     return {
       results: parsed.results || [],

@@ -175,5 +175,3 @@ dependencies {
         implementation jscFlavor
     }
 }
-
-apply from: "./eas-build.gradle"

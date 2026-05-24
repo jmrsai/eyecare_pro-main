@@ -21,8 +21,8 @@ export default function ReactionGame() {
   const [lastAppearance, setLastAppearance] = useState(Date.now());
   const [missedTaps, setMissedTaps] = useState(0);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<any>(null);
+  const gameLoopRef = useRef<any>(null);
 
   const stopGame = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -158,7 +158,7 @@ export default function ReactionGame() {
 
             <TouchableOpacity 
               style={styles.startBtn}
-              onPress={() => router.replace('/training')}
+              onPress={() => router.replace('/training' as any)}
             >
               <Text style={styles.startBtnText}>Finish Routine</Text>
             </TouchableOpacity>

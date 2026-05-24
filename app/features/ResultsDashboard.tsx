@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { FileDown, Calendar, ClipboardCheck } from 'lucide-react-native';
-import { generatePdfReport } from '../../utils/pdfGenerator';
+import { generateEyeHealthReport } from '../../utils/pdfGenerator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MotiView } from 'moti';
 import appTheme from '../../styles/theme';
@@ -65,7 +65,13 @@ export default function ResultsDashboard() {
   }, [loadResults]);
 
   const handleShareReport = () => {
-    generatePdfReport(results);
+    const habits = {
+      dailyScreenTime: 5.2,
+      breakCompliance: 78,
+      eyeStrainScore: 12,
+      blinkRate: 14
+    };
+    generateEyeHealthReport(results, habits);
   };
 
   const getStatusColor = (status: string) => {

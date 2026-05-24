@@ -81,7 +81,7 @@ export default function AccommodationTest() {
   }, [focusAnim, sizeAnim]);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: any;
     
     if ((phase === 'near' || phase === 'far') && timeLeft > 0) {
       timer = setInterval(() => {

@@ -11,7 +11,7 @@ const { width } = Dimensions.get('window');
 export default function AssessmentHub() {
   const { wellnessScore, aiInsights, results } = useEyeStore();
 
-  const getScoreColor = () => {
+  const getScoreColor = (): [string, string] => {
     if (wellnessScore >= 80) return ['#10B981', '#059669'];
     if (wellnessScore >= 60) return ['#F59E0B', '#D97706'];
     return ['#EF4444', '#DC2626'];

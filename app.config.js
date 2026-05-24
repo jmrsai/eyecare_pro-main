@@ -13,6 +13,7 @@ export default {
       infoPlist: {
         UIBackgroundModes: ["fetch", "remote-notification"],
         NSCameraUsageDescription: "EyeCare Pro needs access to your camera for eye health screening and prescription scanning.",
+        NSMicrophoneUsageDescription: "EyeCare Pro needs access to your microphone for voice-guided tests.",
         NSFaceIDUsageDescription: "EyeCare Pro uses Face ID to securely protect your eye health records."
       }
     },
@@ -42,13 +43,21 @@ export default {
       "expo-sqlite",
       "expo-localization",
       "expo-notifications",
-      "expo-camera",
       "expo-local-authentication",
       [
         "expo-font",
         {
-          fonts: [
+          "fonts": [
             "./assets/fonts/SpaceMono-Regular.ttf"
+          ]
+        }
+      ],
+      [
+        "expo-asset",
+        {
+          "assets": [
+            "./assets/models/face_mesh.tflite",
+            "./assets/models/iris_segmentation.tflite"
           ]
         }
       ]
